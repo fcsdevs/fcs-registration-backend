@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
-import { UnauthorizedError } from './error-handler.js';
+import { UnauthorizedError, ForbiddenError } from './error-handler.js';
+import { getPrismaClient } from '../lib/prisma.js';
+
+const prisma = getPrismaClient();
 
 export const authenticate = (req, res, next) => {
   try {
@@ -48,4 +51,52 @@ export const optional = (req, res, next) => {
     // Optional auth, so we don't throw on invalid token
     next();
   }
+};
+
+export const authorize = (allowedRoles = []) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.userId) {
+        return next(new UnauthorizedError('User not authenticated'));
+      }
+
+      // If no roles are required, allow access
+      if (allowedRoles.length === 0) {
+        return next();
+      }
+
+      // Fetch user's roles
+      const member = await prisma.member.findFirst({
+        where: { authUserId: req.userId },
+        include: {
+          roleAssignments: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      });
+
+      if (!member) {
+        // User is authenticated but has no member profile?
+        return next(new ForbiddenError('User profile not found'));
+      }
+
+      const userRoles = member.roleAssignments.map((assignment) => assignment.role.name);
+
+      // Check if user has any of the allowed roles
+      const hasPermission = userRoles.some((role) => allowedRoles.includes(role));
+
+      if (!hasPermission) {
+        return next(new ForbiddenError('Insufficient permissions'));
+      }
+
+      // Attach roles to request for subsequent use if needed
+      req.userRoles = userRoles;
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 };

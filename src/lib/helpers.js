@@ -137,3 +137,24 @@ export const getDateRangeQuery = (startDate, endDate) => {
 
   return Object.keys(query).length > 0 ? query : undefined;
 };
+
+/**
+ * Normalize phone number to international format (+234)
+ */
+export const normalizePhoneNumber = (phoneNumber) => {
+  if (!phoneNumber) return phoneNumber;
+
+  // Remove spaces, dashes, parentheses
+  let cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
+
+  // If starts with '0', replace with '+234'
+  if (cleaned.startsWith('0')) {
+    cleaned = '+234' + cleaned.substring(1);
+  }
+  // If starts with '234', add '+'
+  else if (cleaned.startsWith('234')) {
+    cleaned = '+' + cleaned;
+  }
+
+  return cleaned;
+};

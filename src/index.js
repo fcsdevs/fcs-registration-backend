@@ -2,17 +2,22 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
-import pino from 'pino';
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
+
+// Import logger
+import logger from './lib/logger.js';
 
 // Import middleware
 import { errorHandler } from './middleware/error-handler.js';
 import { requestValidator } from './middleware/request-validator.js';
 import { createRateLimiters } from './middleware/rate-limit-handler.js';
 import { requestTimeout, socketTimeout } from './middleware/timeout-handler.js';
+
+// Import database connection helper
+import { initializeDatabase } from './lib/db-connection.js';
 
 // Import routes
 import authRoutes from './modules/auth/routes.js';
@@ -23,39 +28,22 @@ import attendanceRoutes from './modules/attendance/routes.js';
 import centerRoutes from './modules/centers/routes.js';
 import reportRoutes from './modules/reports/routes.js';
 import auditRoutes from './modules/audit/routes.js';
+import healthRoutes from './routes/health.js';
 import groupRoutes from './modules/groups/routes.js';
 import unitRoutes from './modules/units/routes.js';
 import roleRoutes from './modules/roles/routes.js';
 import notificationRoutes from './modules/notifications/routes.js';
+import userRoutes from './modules/users/routes.js';
+import inviteRoutes from './modules/invites/routes.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3005;
 const NODE_ENV = process.env.NODE_ENV || 'development';
-
-// Logger setup
-const logger = NODE_ENV === 'development'
-  ? pino(
-      {
-        level: process.env.LOG_LEVEL || 'info',
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            singleLine: false,
-            translateTime: 'SYS:standard',
-            ignore: 'pid,hostname',
-          },
-        },
-      }
-    )
-  : pino({
-      level: process.env.LOG_LEVEL || 'info',
-    });
 
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true,
 }));
 
@@ -89,6 +77,7 @@ app.get('/health', (req, res) => {
 // API Routes
 const apiRouter = express.Router();
 
+apiRouter.use('/health', healthRoutes);
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/members', memberRoutes);
 apiRouter.use('/events', eventRoutes);
@@ -101,6 +90,8 @@ apiRouter.use('/groups', groupRoutes);
 apiRouter.use('/units', unitRoutes);
 apiRouter.use('/roles', roleRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/invites', inviteRoutes);
 
 app.use('/api', apiRouter);
 
@@ -116,13 +107,31 @@ app.use((req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-// Start server
-const server = app.listen(PORT, () => {
-  logger.info(
-    `🚀 FCS Registration API Server running on port ${PORT} in ${NODE_ENV} mode`
-  );
-  logger.info(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-});
+// Initialize database and start server
+let server;
+
+async function startServer() {
+  try {
+    // Initialize database connection with retries
+    logger.info('🔄 Initializing database connection...');
+    await initializeDatabase();
+
+    // Start server after successful database connection
+    server = app.listen(PORT, () => {
+      logger.info(
+        `🚀 FCS Registration API Server running on port ${PORT} in ${NODE_ENV} mode`
+      );
+      logger.info(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error.message);
+    logger.error('Exiting...');
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
@@ -143,12 +152,18 @@ process.on('SIGINT', () => {
 
 // Unhandled exception handler
 process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', error);
+  console.error('Uncaught Exception:');
+  console.error(error);
+  console.error('Stack:', error.stack);
+  logger.error({ err: error }, 'Uncaught Exception');
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('Unhandled Rejection:');
+  console.error('Reason:', reason);
+  console.error('Promise:', promise);
+  logger.error({ reason, promise }, 'Unhandled Rejection');
   process.exit(1);
 });
 

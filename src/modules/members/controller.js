@@ -9,6 +9,7 @@ import {
   getMemberAttendanceSummary,
   deactivateMember,
   searchMembers,
+  getMemberByAuthId,
 } from './service.js';
 import { createMemberSchema, updateMemberSchema, paginationSchema } from '../../lib/validation.js';
 
@@ -59,9 +60,7 @@ export const listMembersHandler = async (req, res, next) => {
       isActive: req.query.isActive,
     });
 
-    res.status(200).json({
-      data: members,
-    });
+    res.status(200).json(members);
   } catch (error) {
     next(error);
   }
@@ -114,6 +113,36 @@ export const updateMemberHandler = async (req, res, next) => {
     res.status(200).json({
       data: member,
       message: 'Member updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT /api/members/profile
+ */
+export const updateProfileHandler = async (req, res, next) => {
+  try {
+    const { error, value } = updateMemberSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: error.details[0].message,
+        },
+      });
+    }
+
+    // Get member for current user
+    const member = await getMemberByAuthId(req.userId);
+
+    // Update member
+    const updatedMember = await updateMember(member.id, value);
+
+    res.status(200).json({
+      data: updatedMember,
+      message: 'Profile updated successfully',
     });
   } catch (error) {
     next(error);

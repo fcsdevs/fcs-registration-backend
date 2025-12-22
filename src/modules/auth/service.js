@@ -5,6 +5,7 @@ import {
   generateToken,
   generateOTP,
   generateFCSCode,
+  normalizePhoneNumber,
 } from '../../lib/helpers.js';
 import {
   ValidationError,
@@ -19,10 +20,11 @@ const prisma = getPrismaClient();
  */
 export const registerUser = async (data) => {
   const { phoneNumber, email, password, firstName, lastName } = data;
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
   // Check if user already exists
   const existingUser = await prisma.authUser.findUnique({
-    where: { phoneNumber },
+    where: { phoneNumber: normalizedPhone },
   });
 
   if (existingUser) {
@@ -33,9 +35,10 @@ export const registerUser = async (data) => {
   const passwordHash = await hashPassword(password);
 
   // Create auth user
+  // Create auth user
   const authUser = await prisma.authUser.create({
     data: {
-      phoneNumber,
+      phoneNumber: normalizedPhone,
       email: email || null,
       passwordHash,
     },
@@ -48,13 +51,16 @@ export const registerUser = async (data) => {
       authUserId: authUser.id,
       firstName,
       lastName,
-      phoneNumber: phoneNumber || null,
+      phoneNumber: normalizedPhone || null,
       email: email || null,
+      state: data.state || null,
+      zone: data.zone || null,
+      branch: data.branch || null,
     },
   });
 
   // Generate token
-  const token = generateToken(authUser.id, phoneNumber, email);
+  const token = generateToken(authUser.id, normalizedPhone, email);
 
   // Create session
   const session = await prisma.authSession.create({
@@ -79,16 +85,62 @@ export const registerUser = async (data) => {
 };
 
 /**
- * Login user with phone and password
+ * Check if user exists by email or phone
  */
-export const loginUser = async (phoneNumber, password) => {
+export const checkUserExistence = async ({ email, phoneNumber }) => {
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+  const where = {};
+  if (email) where.email = email;
+  if (normalizedPhone) where.phoneNumber = normalizedPhone;
+
+  const existingUser = await prisma.authUser.findFirst({
+    where: {
+      OR: [
+        email ? { email } : undefined,
+        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+      ].filter(Boolean),
+    },
+    select: {
+      id: true,
+      email: true,
+      phoneNumber: true,
+    },
+  });
+
+  if (existingUser) {
+    let message = 'User already exists';
+    if (email && existingUser.email === email && phoneNumber && existingUser.phoneNumber === phoneNumber) {
+      message = 'User with this email and phone number already exists';
+    } else if (email && existingUser.email === email) {
+      message = 'User with this email address already exists';
+    } else if (phoneNumber && existingUser.phoneNumber === phoneNumber) {
+      message = 'User with this phone number already exists';
+    }
+
+    return {
+      exists: true,
+      message,
+      field: email && existingUser.email === email ? 'email' : 'phoneNumber',
+    };
+  }
+
+  return {
+    exists: false,
+    message: 'User does not exist',
+  };
+};
+
+/**
+ * Login user with email and password
+ */
+export const loginUser = async (email, password) => {
   // Find user
   const authUser = await prisma.authUser.findUnique({
-    where: { phoneNumber },
+    where: { email },
   });
 
   if (!authUser) {
-    throw new UnauthorizedError('Invalid phone number or password');
+    throw new UnauthorizedError('Invalid email or password');
   }
 
   // Check if active
@@ -100,7 +152,7 @@ export const loginUser = async (phoneNumber, password) => {
   const isValidPassword = await comparePassword(password, authUser.passwordHash);
 
   if (!isValidPassword) {
-    throw new UnauthorizedError('Invalid phone number or password');
+    throw new UnauthorizedError('Invalid email or password');
   }
 
   // Update last login
@@ -127,16 +179,26 @@ export const loginUser = async (phoneNumber, password) => {
     },
   });
 
-  // Get member
+  // Get member with roles
   const member = await prisma.member.findFirst({
     where: { authUserId: authUser.id },
+    include: {
+      roleAssignments: {
+        include: {
+          role: true,
+        },
+      },
+    },
   });
+
+  const roles = member?.roleAssignments?.map((ra) => ra.role.name) || [];
 
   return {
     id: authUser.id,
     phoneNumber: authUser.phoneNumber,
     email: authUser.email,
-    member,
+    member, // This now includes roleAssignments, maybe clean it up? Frontend expects flat member object usually, but context handles it.
+    roles,
     token,
     session: {
       id: session.id,
@@ -149,10 +211,11 @@ export const loginUser = async (phoneNumber, password) => {
  * Send OTP to phone number
  */
 export const sendOTP = async (phoneNumber, purpose) => {
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
   // Check if user exists (for certain purposes)
   if (purpose !== 'REGISTRATION') {
     const authUser = await prisma.authUser.findUnique({
-      where: { phoneNumber },
+      where: { phoneNumber: normalizedPhone },
     });
 
     if (!authUser) {
@@ -177,7 +240,7 @@ export const sendOTP = async (phoneNumber, purpose) => {
       userId:
         (
           await prisma.authUser.findUnique({
-            where: { phoneNumber },
+            where: { phoneNumber: normalizedPhone },
           })
         )?.id || null,
       code,
@@ -187,7 +250,7 @@ export const sendOTP = async (phoneNumber, purpose) => {
   });
 
   // TODO: Send OTP via SMS provider (Twilio, etc)
-  console.log(`OTP for ${phoneNumber}: ${code}`);
+  console.log(`OTP for ${normalizedPhone}: ${code}`);
 
   return {
     message: 'OTP sent',
@@ -201,6 +264,7 @@ export const sendOTP = async (phoneNumber, purpose) => {
  * Verify OTP
  */
 export const verifyOTP = async (phoneNumber, code) => {
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
   // Find OTP
   const otp = await prisma.oTPToken.findFirst({
     where: {
@@ -231,13 +295,13 @@ export const verifyOTP = async (phoneNumber, code) => {
 
   // Get or create user
   let authUser = await prisma.authUser.findUnique({
-    where: { phoneNumber },
+    where: { phoneNumber: normalizedPhone },
   });
 
   if (!authUser) {
     authUser = await prisma.authUser.create({
       data: {
-        phoneNumber,
+        phoneNumber: normalizedPhone,
         passwordHash: '', // Will be set later
       },
     });
@@ -332,5 +396,23 @@ export const getUserById = async (userId) => {
     throw new NotFoundError('User');
   }
 
-  return authUser;
+  // Get member details and roles
+  const member = await prisma.member.findFirst({
+    where: { authUserId: userId },
+    include: {
+      roleAssignments: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  const roles = member?.roleAssignments?.map((ra) => ra.role.name) || [];
+
+  return {
+    ...authUser,
+    member,
+    roles,
+  };
 };

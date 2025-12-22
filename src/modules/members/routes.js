@@ -10,12 +10,13 @@ import {
   removeGuardianHandler,
   deactivateMemberHandler,
   searchMembersHandler,
+  updateProfileHandler,
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
 const router = express.Router();
 
-// GET /api/members/search - Search members
+// GET /api/members/search - Search members (MUST be before /:id)
 router.get('/search', authenticate, searchMembersHandler);
 
 // GET /api/members - List all members
@@ -24,11 +25,14 @@ router.get('/', authenticate, listMembersHandler);
 // POST /api/members - Create member
 router.post('/', authenticate, createMemberHandler);
 
+// GET /api/members/code/:code - Get member by FCS code (MUST be before /:id)
+router.get('/code/:code', authenticate, getMemberByCodeHandler);
+
+// PUT /api/members/profile - Update own profile (MUST be before /:id)
+router.put('/profile', authenticate, updateProfileHandler);
+
 // GET /api/members/:id - Get member details
 router.get('/:id', authenticate, getMemberHandler);
-
-// GET /api/members/code/:code - Get member by FCS code
-router.get('/code/:code', authenticate, getMemberByCodeHandler);
 
 // PUT /api/members/:id - Update member
 router.put('/:id', authenticate, updateMemberHandler);

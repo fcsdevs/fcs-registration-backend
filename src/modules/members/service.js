@@ -105,6 +105,21 @@ export const getMemberByFCSCode = async (fcsCode) => {
 };
 
 /**
+ * Get member by Auth User ID
+ */
+export const getMemberByAuthId = async (authUserId) => {
+  const member = await prisma.member.findFirst({
+    where: { authUserId },
+  });
+
+  if (!member) {
+    throw new NotFoundError('Member profile');
+  }
+
+  return member;
+};
+
+/**
  * List all members with pagination and filters
  */
 export const listMembers = async (query) => {

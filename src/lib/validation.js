@@ -5,7 +5,7 @@ import Joi from 'joi';
 // ============================================================
 
 export const registerSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^\+?234\d{10}$/).required(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required(),
   email: Joi.string().email().optional(),
   password: Joi.string().min(8).required(),
   confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
@@ -14,19 +14,24 @@ export const registerSchema = Joi.object({
 });
 
 export const loginSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^\+?234\d{10}$/).required(),
+  email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
 
 export const sendOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^\+?234\d{10}$/).required(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required(),
   purpose: Joi.string().valid('EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET').required(),
 });
 
 export const verifyOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^\+?234\d{10}$/).required(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required(),
   code: Joi.string().length(6).required(),
 });
+
+export const checkExistenceSchema = Joi.object({
+  email: Joi.string().email().optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+}).or('email', 'phoneNumber');
 
 // ============================================================
 // MEMBER VALIDATION SCHEMAS
@@ -36,7 +41,7 @@ export const createMemberSchema = Joi.object({
   firstName: Joi.string().min(2).max(50).required(),
   lastName: Joi.string().min(2).max(50).required(),
   email: Joi.string().email().optional(),
-  phoneNumber: Joi.string().pattern(/^\+?234\d{10}$/).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
   dateOfBirth: Joi.date().iso().optional(),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional(),
   maritalStatus: Joi.string().valid('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED').optional(),
@@ -48,7 +53,7 @@ export const updateMemberSchema = Joi.object({
   firstName: Joi.string().min(2).max(50).optional(),
   lastName: Joi.string().min(2).max(50).optional(),
   email: Joi.string().email().optional(),
-  phoneNumber: Joi.string().pattern(/^\+?234\d{10}$/).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
   dateOfBirth: Joi.date().iso().optional(),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional(),
   maritalStatus: Joi.string().valid('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED').optional(),

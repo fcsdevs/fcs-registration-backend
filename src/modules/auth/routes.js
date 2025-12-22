@@ -7,6 +7,7 @@ import {
   logout,
   refreshTokenHandler,
   getCurrentUser,
+  checkExistence,
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
@@ -14,6 +15,9 @@ const router = express.Router();
 
 // POST /api/auth/register - Register new user
 router.post('/register', register);
+
+// POST /api/auth/check-existence - Check if user exists
+router.post('/check-existence', checkExistence);
 
 // POST /api/auth/login - Login user
 router.post('/login', login);

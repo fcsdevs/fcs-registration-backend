@@ -20,6 +20,12 @@ router.get('/', authenticate, listRegistrationsHandler);
 // POST /api/registrations - Create registration
 router.post('/', authenticate, createRegistrationHandler);
 
+// GET /api/registrations/event/:eventId - Get event registrations (MUST be before /:id)
+router.get('/event/:eventId', authenticate, getEventRegistrationsHandler);
+
+// GET /api/registrations/member/:memberId - Get member registrations (MUST be before /:id)
+router.get('/member/:memberId', authenticate, getMemberRegistrationsHandler);
+
 // GET /api/registrations/:id - Get registration details
 router.get('/:id', authenticate, getRegistrationHandler);
 
@@ -34,11 +40,5 @@ router.post('/:id/assign-group', authenticate, assignGroupHandler);
 
 // DELETE /api/registrations/:id - Cancel registration
 router.delete('/:id', authenticate, cancelRegistrationHandler);
-
-// GET /api/registrations/event/:eventId - Get event registrations
-router.get('/event/:eventId', authenticate, getEventRegistrationsHandler);
-
-// GET /api/registrations/member/:memberId - Get member registrations
-router.get('/member/:memberId', authenticate, getMemberRegistrationsHandler);
 
 export default router;

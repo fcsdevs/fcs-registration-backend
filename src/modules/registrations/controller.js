@@ -59,9 +59,7 @@ export const listRegistrationsHandler = async (req, res, next) => {
       centerId: req.query.centerId,
     });
 
-    res.status(200).json({
-      data: registrations,
-    });
+    res.status(200).json(registrations);
   } catch (error) {
     next(error);
   }
@@ -202,9 +200,7 @@ export const getEventRegistrationsHandler = async (req, res, next) => {
       status: req.query.status,
     });
 
-    res.status(200).json({
-      data: registrations,
-    });
+    res.status(200).json(registrations);
   } catch (error) {
     next(error);
   }
@@ -231,9 +227,7 @@ export const getMemberRegistrationsHandler = async (req, res, next) => {
       status: req.query.status,
     });
 
-    res.status(200).json({
-      data: registrations,
-    });
+    res.status(200).json(registrations);
   } catch (error) {
     next(error);
   }

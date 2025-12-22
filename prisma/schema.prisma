@@ -40,6 +40,7 @@ model AuthUser {
   attendanceVerifications AttendanceRecord[] @relation("VerifiedBy")
   attendanceCorrections AttendanceCorrection[] @relation("CorrectedBy")
   centerAdmins      CenterAdmin[]
+  sentInvites       Invite[]          // Added back-relation
 
   @@index([phoneNumber])
   @@index([email])
@@ -107,6 +108,8 @@ model Member {
   maritalStatus     String?
   occupation        String?
   state             String?
+  zone              String?           // Text-based Zone/Area
+  branch            String?           // Text-based Branch
   profilePhotoUrl   String?
   isActive          Boolean           @default(true)
   joinedAt          DateTime          @default(now())
@@ -174,6 +177,7 @@ model Unit {
   eventCenters      EventCenter[]
   roleAssignments   RoleAssignment[]
   auditLogs         AuditLog[]
+  invites           Invite[]          // Added back-relation
 
   @@unique([unitTypeId, name, parentId])
   @@index([unitTypeId])
@@ -194,6 +198,7 @@ model Role {
 
   permissions       Permission[]
   roleAssignments   RoleAssignment[]
+  invites           Invite[]          // Added back-relation
 }
 
 model Permission {
@@ -584,4 +589,29 @@ model SystemConfig {
   value             String
   description       String?
   updatedAt         DateTime          @updatedAt
+}
+
+// ============================================================
+// MODULE 14: INVITATIONS (NEW)
+// ============================================================
+
+model Invite {
+  id                String            @id @default(cuid())
+  email             String
+  roleId            String
+  role              Role              @relation(fields: [roleId], references: [id])
+  unitId            String?
+  unit              Unit?             @relation(fields: [unitId], references: [id])
+  invitedBy         String
+  invitedByUser     AuthUser          @relation(fields: [invitedBy], references: [id])
+  token             String            @unique
+  expiresAt         DateTime
+  status            String            @default("PENDING") // "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED"
+  acceptedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([email])
+  @@index([token])
+  @@index([invitedBy])
 }

@@ -6,8 +6,9 @@ import {
   refreshToken,
   logoutUser,
   getUserById,
+  checkUserExistence,
 } from './service.js';
-import { registerSchema, loginSchema, sendOTPSchema, verifyOTPSchema } from '../../lib/validation.js';
+import { registerSchema, loginSchema, sendOTPSchema, verifyOTPSchema, checkExistenceSchema } from '../../lib/validation.js';
 
 /**
  * POST /api/auth/register
@@ -36,6 +37,32 @@ export const register = async (req, res, next) => {
 };
 
 /**
+ * POST /api/auth/check-existence
+ */
+export const checkExistence = async (req, res, next) => {
+  try {
+    // Validate request
+    const { error, value } = checkExistenceSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: error.details[0].message,
+        },
+      });
+    }
+
+    const result = await checkUserExistence(value);
+    res.status(200).json({
+      data: result,
+      message: 'Check completed',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * POST /api/auth/login
  */
 export const login = async (req, res, next) => {
@@ -51,7 +78,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const result = await loginUser(value.phoneNumber, value.password);
+    const result = await loginUser(value.email, value.password);
     res.status(200).json({
       data: result,
       message: 'Login successful',

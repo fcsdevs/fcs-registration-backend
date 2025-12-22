@@ -3,12 +3,26 @@ import pino from 'pino';
 const logger = pino();
 
 export const errorHandler = (err, req, res, next) => {
-  const status = err.status || 500;
-  const message = err.message || 'Internal Server Error';
-  const code = err.code || 'INTERNAL_ERROR';
+  let status = err.status || 500;
+  let message = err.message || 'Internal Server Error';
+  let code = err.code || 'INTERNAL_ERROR';
 
+  // Check if it's a Prisma database error
+  if (err.message && (
+    err.message.includes('Can\'t reach database server') ||
+    err.message.includes('Invalid `prisma.') ||
+    err.message.includes('database server is running') ||
+    err.message.toLowerCase().includes('prisma')
+  )) {
+    status = 500;
+    message = 'Server error. Please try again later.';
+    code = 'SERVER_ERROR';
+  }
+
+  // Log the actual error for debugging
   logger.error({
     status,
+    originalMessage: err.message,
     message,
     code,
     path: req.path,

@@ -57,9 +57,7 @@ export const listEventsHandler = async (req, res, next) => {
       isPublished: req.query.isPublished,
     });
 
-    res.status(200).json({
-      data: events,
-    });
+    res.status(200).json(events);
   } catch (error) {
     next(error);
   }
