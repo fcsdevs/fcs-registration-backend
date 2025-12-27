@@ -58,6 +58,7 @@ export const listMembersHandler = async (req, res, next) => {
       search: req.query.search,
       state: req.query.state,
       isActive: req.query.isActive,
+      gender: req.query.gender,
     });
 
     res.status(200).json(members);

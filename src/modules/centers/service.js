@@ -129,6 +129,13 @@ export const listCentersByEvent = async (eventId, query) => {
       take,
       include: {
         admins: { select: { user: { select: { phoneNumber: true } } } },
+        state: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     }),

@@ -189,7 +189,7 @@ export const listRegistrations = async (query) => {
       take,
       include: {
         member: { select: { fcsCode: true, firstName: true, lastName: true } },
-        event: { select: { title: true } },
+        event: { select: { title: true, startDate: true, endDate: true, participationMode: true } },
         participation: true,
       },
       orderBy: { registrationDate: 'desc' },

@@ -186,19 +186,28 @@ export const loginUser = async (email, password) => {
       roleAssignments: {
         include: {
           role: true,
+          unit: {
+            include: { unitType: true }
+          },
         },
       },
     },
   });
 
   const roles = member?.roleAssignments?.map((ra) => ra.role.name) || [];
+  const primaryAssignment = member?.roleAssignments?.find(ra => ra.unitId);
+  const unit = primaryAssignment && primaryAssignment.unit ? {
+    ...primaryAssignment.unit,
+    type: primaryAssignment.unit.unitType?.name
+  } : null;
 
   return {
     id: authUser.id,
     phoneNumber: authUser.phoneNumber,
     email: authUser.email,
-    member, // This now includes roleAssignments, maybe clean it up? Frontend expects flat member object usually, but context handles it.
+    member,
     roles,
+    unit,
     token,
     session: {
       id: session.id,
@@ -403,16 +412,25 @@ export const getUserById = async (userId) => {
       roleAssignments: {
         include: {
           role: true,
+          unit: {
+            include: { unitType: true }
+          },
         },
       },
     },
   });
 
   const roles = member?.roleAssignments?.map((ra) => ra.role.name) || [];
+  const primaryAssignment = member?.roleAssignments?.find(ra => ra.unitId);
+  const unit = primaryAssignment && primaryAssignment.unit ? {
+    ...primaryAssignment.unit,
+    type: primaryAssignment.unit.unitType?.name
+  } : null;
 
   return {
     ...authUser,
     member,
     roles,
+    unit,
   };
 };

@@ -123,12 +123,18 @@ export const getMemberByAuthId = async (authUserId) => {
  * List all members with pagination and filters
  */
 export const listMembers = async (query) => {
-  const { page, limit, search, state, isActive } = query;
+  const { page, limit, search, state, isActive, gender } = query;
   const { skip, take } = getPaginationParams(page, limit);
 
-  const where = {
-    isActive: isActive !== undefined ? isActive === 'true' : true,
-  };
+  const where = {};
+
+  if (isActive !== undefined) {
+    where.isActive = isActive === 'true';
+  }
+
+  if (gender) {
+    where.gender = gender;
+  }
 
   if (search) {
     where.OR = [

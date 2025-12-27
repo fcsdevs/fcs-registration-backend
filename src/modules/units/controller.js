@@ -17,7 +17,7 @@ import Joi from 'joi';
 const createUnitSchema = Joi.object({
   name: Joi.string().required(),
   type: Joi.string()
-    .valid('NATIONAL', 'REGIONAL', 'DISTRICT', 'LOCAL', 'CELL')
+    .valid('National', 'Regional', 'State', 'Zone', 'Area', 'Branch')
     .required(),
   parentUnitId: Joi.string(),
   description: Joi.string().allow(''),
@@ -26,7 +26,7 @@ const createUnitSchema = Joi.object({
 
 const updateUnitSchema = Joi.object({
   name: Joi.string(),
-  type: Joi.string().valid('NATIONAL', 'REGIONAL', 'DISTRICT', 'LOCAL', 'CELL'),
+  type: Joi.string().valid('National', 'Regional', 'State', 'Zone', 'Area', 'Branch'),
   description: Joi.string().allow(''),
   leaderId: Joi.string(),
 });
@@ -36,8 +36,11 @@ const updateUnitSchema = Joi.object({
  */
 export const createUnitHandler = async (req, res, next) => {
   try {
+    console.log('[DEBUG] createUnitHandler called with body:', req.body);
+
     const { error, value } = createUnitSchema.validate(req.body);
     if (error) {
+      console.log('[DEBUG] Validation error:', error.details[0].message);
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
@@ -46,12 +49,16 @@ export const createUnitHandler = async (req, res, next) => {
       });
     }
 
+    console.log('[DEBUG] Calling createUnit with value:', value);
     const unit = await createUnit(value);
+    console.log('[DEBUG] Unit created successfully:', unit.id);
+
     res.status(201).json({
       data: unit,
       message: 'Unit created successfully',
     });
   } catch (error) {
+    console.error('[DEBUG] Error in createUnitHandler:', error);
     next(error);
   }
 };
@@ -61,8 +68,11 @@ export const createUnitHandler = async (req, res, next) => {
  */
 export const listUnitsHandler = async (req, res, next) => {
   try {
+    console.log('[DEBUG] listUnitsHandler called with query:', req.query);
+
     const { error, value } = paginationSchema.validate(req.query);
     if (error) {
+      console.log('[DEBUG] Validation error:', error.details[0].message);
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
@@ -71,17 +81,27 @@ export const listUnitsHandler = async (req, res, next) => {
       });
     }
 
-    const units = await listUnits({
+    console.log('[DEBUG] Calling listUnits with params:', {
       ...value,
       type: req.query.type,
       parentUnitId: req.query.parentUnitId,
       search: req.query.search,
     });
 
-    res.status(200).json({
-      data: units,
+    const result = await listUnits({
+      ...value,
+      type: req.query.type,
+      parentUnitId: req.query.parentUnitId,
+      search: req.query.search,
     });
+
+    console.log('[DEBUG] listUnits returned:', JSON.stringify(result).substring(0, 200));
+
+    // Service returns { data: [...], pagination: {...} }
+    // Return it directly without wrapping
+    res.status(200).json(result);
   } catch (error) {
+    console.error('[DEBUG] Error in listUnitsHandler:', error);
     next(error);
   }
 };

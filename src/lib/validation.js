@@ -73,7 +73,7 @@ export const createEventSchema = Joi.object({
   startDate: Joi.date().iso().required(),
   endDate: Joi.date().iso().greater(Joi.ref('startDate')).required(),
   registrationStart: Joi.date().iso().required(),
-  registrationEnd: Joi.date().iso().less(Joi.ref('startDate')).required(),
+  registrationEnd: Joi.date().iso().greater(Joi.ref('registrationStart')).required(),
   participationMode: Joi.string().valid('ONLINE', 'ONSITE', 'HYBRID').required(),
   capacity: Joi.number().min(1).optional(),
 });
@@ -87,7 +87,7 @@ export const updateEventSchema = Joi.object({
   registrationEnd: Joi.date().iso().optional(),
   participationMode: Joi.string().valid('ONLINE', 'ONSITE', 'HYBRID').optional(),
   capacity: Joi.number().min(1).optional(),
-}).min(1);
+}).min(1).unknown(true);
 
 // ============================================================
 // REGISTRATION VALIDATION SCHEMAS
@@ -161,7 +161,7 @@ export const updateCenterSchema = Joi.object({
 export const paginationSchema = Joi.object({
   page: Joi.number().min(1).default(1),
   limit: Joi.number().min(1).max(100).default(20),
-});
+}).unknown(true);
 
 export const dateRangeSchema = Joi.object({
   startDate: Joi.date().iso().optional(),

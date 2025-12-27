@@ -42,9 +42,10 @@ export const createEvent = async (data, userId) => {
     throw new ValidationError('Start date must be before end date');
   }
 
-  if (new Date(registrationEnd) >= new Date(startDate)) {
-    throw new ValidationError('Registration must close before event starts');
-  }
+  // Removed validation: Allow registration to extend into or after event period
+  // if (new Date(registrationEnd) >= new Date(startDate)) {
+  //   throw new ValidationError('Registration must close before event starts');
+  // }
 
   const event = await prisma.event.create({
     data: {
@@ -163,9 +164,10 @@ export const updateEvent = async (eventId, data) => {
   }
 
   // Check if registration window has closed
-  if (isDateInPast(event.registrationEnd)) {
-    throw new ValidationError('Cannot update event after registration closes');
-  }
+  // Commented out to allow admins to update past events
+  // if (isDateInPast(event.registrationEnd)) {
+  //   throw new ValidationError('Cannot update event after registration closes');
+  // }
 
   const updateData = {};
 
@@ -173,9 +175,10 @@ export const updateEvent = async (eventId, data) => {
   if (description !== undefined) updateData.description = description;
   if (startDate) {
     updateData.startDate = new Date(startDate);
-    if (registrationEnd && new Date(registrationEnd) >= new Date(startDate)) {
-      throw new ValidationError('Registration must close before event starts');
-    }
+    // Removed validation: Allow registration to extend into or after event period
+    // if (registrationEnd && new Date(registrationEnd) >= new Date(startDate)) {
+    //   throw new ValidationError('Registration must close before event starts');
+    // }
   }
   if (endDate) updateData.endDate = new Date(endDate);
   if (registrationStart) updateData.registrationStart = new Date(registrationStart);
@@ -245,19 +248,19 @@ export const getEventStatistics = async (eventId) => {
   const centerStats =
     ['ONSITE', 'HYBRID'].includes(event.participationMode)
       ? await prisma.eventCenter.findMany({
-          where: { eventId, isActive: true },
-          select: {
-            id: true,
-            centerName: true,
-            capacity: true,
-            _count: {
-              select: {
-                registrations: true,
-                attendances: true,
-              },
+        where: { eventId, isActive: true },
+        select: {
+          id: true,
+          centerName: true,
+          capacity: true,
+          _count: {
+            select: {
+              registrations: true,
+              attendances: true,
             },
           },
-        })
+        },
+      })
       : [];
 
   return {
