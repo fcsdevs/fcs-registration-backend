@@ -1,12 +1,12 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (including dev deps for prisma generate)
 RUN npm ci
 
 # Copy prisma schema
@@ -16,15 +16,18 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 # Production stage
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install system dependencies (openssl for Prisma, dumb-init for signals)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    dumb-init \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+RUN groupadd -g 1001 nodejs && useradd -u 1001 -g nodejs -s /bin/bash -m nodejs
 
 # Copy package files
 COPY package*.json ./
@@ -32,7 +35,7 @@ COPY package*.json ./
 # Install production dependencies only
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy prisma schema and generated client
+# Copy prisma schema and generated client from builder
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
