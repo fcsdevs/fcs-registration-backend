@@ -294,3 +294,27 @@ export const markAttendanceHandler = async (req, res, next) => {
     next(error);
   }
 };
+
+import { generateTagPdf } from './pdf-service.js';
+
+/**
+ * GET /api/registrations/:id/tag-pdf
+ */
+export const downloadTagHandler = async (req, res, next) => {
+  try {
+    const registrationId = req.params.id;
+    const registration = await getRegistrationById(registrationId);
+
+    if (!registration) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Registration not found' } });
+    }
+
+    const pdfBuffer = await generateTagPdf(registration);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=tag-${registration.member.fcsCode}.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+};

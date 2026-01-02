@@ -11,6 +11,7 @@ import {
   getMemberRegistrationsHandler,
   getRegistrarStatisticsHandler,
   markAttendanceHandler,
+  downloadTagHandler
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
@@ -33,7 +34,11 @@ router.get('/member/:memberId', authenticate, getMemberRegistrationsHandler);
 router.get('/stats', authenticate, getRegistrarStatisticsHandler);
 
 // GET /api/registrations/:id - Get registration details
+// GET /api/registrations/:id - Get registration details
 router.get('/:id', authenticate, getRegistrationHandler);
+
+// GET /api/registrations/:id/tag-pdf - Download tag PDF
+router.get('/:id/tag-pdf', authenticate, downloadTagHandler);
 
 // PUT /api/registrations/:id/status - Update registration status
 router.put('/:id/status', authenticate, updateRegistrationStatusHandler);

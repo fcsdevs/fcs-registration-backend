@@ -152,6 +152,8 @@ export const getRegistrationById = async (registrationId) => {
           id: true,
           title: true,
           participationMode: true,
+          startDate: true,
+          endDate: true,
         },
       },
       participation: {
