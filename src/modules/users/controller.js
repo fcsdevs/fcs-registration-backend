@@ -3,14 +3,27 @@ import {
     assignUserRole,
     revokeUserRole,
     getUserById,
+    getEffectiveScope,
 } from './service.js';
 import { paginationSchema } from '../../lib/validation.js';
 
 export const listUsersHandler = async (req, res, next) => {
     try {
+        // Enforce Scope
+        const scope = await getEffectiveScope(req.userId);
+        let effectiveUnitId = req.query.unitId;
+
+        if (!scope.isGlobal) {
+            // For non-global admins, restrict to their scope
+            // TODO: Allow drill-down if requested unit is a valid descendant
+            effectiveUnitId = scope.unitId;
+            console.log(`🔒 [SECURITY] Enforcing scope for User ${req.userId}: ${effectiveUnitId} (${scope.level})`);
+        }
+
         const users = await listUsers({
             ...req.query,
-            currentUserId: req.userId, // For scoping logic if needed
+            unitId: effectiveUnitId,
+            currentUserId: req.userId,
         });
         res.status(200).json(users);
     } catch (error) {

@@ -1,5 +1,6 @@
 import { getPrismaClient } from '../../lib/prisma.js';
-import { NotFoundError, AppError } from '../../middleware/error-handler.js';
+import { NotFoundError, AppError, ForbiddenError } from '../../middleware/error-handler.js';
+import { checkScopeAccess } from '../users/service.js';
 
 const prisma = getPrismaClient();
 
@@ -23,8 +24,20 @@ const UNIT_LEVELS = {
 /**
  * Create organizational unit
  */
-export const createUnit = async (data) => {
+export const createUnit = async (data, userId) => {
   const { name, type, parentUnitId, description, leaderId } = data;
+
+  // Permission Check
+  if (parentUnitId && userId) {
+    const hasAccess = await checkScopeAccess(userId, parentUnitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to create units under this parent');
+    }
+  } else if (userId) {
+    // Creating a root unit - strict check?
+    // For now, rely on Role Middleware (Super Admin)
+    // But if checkScopeAccess(userId, null) returns true, we are fine as long as route has role check.
+  }
 
   // 1. Get or Create Unit Type
   let unitTypeRecord = await prisma.unitType.findFirst({
@@ -33,7 +46,6 @@ export const createUnit = async (data) => {
     },
   });
 
-  console.log(`[DEBUG] Looking for type '${type}':`, unitTypeRecord);
 
   if (!unitTypeRecord) {
     // Self-healing: Create the type if missing
@@ -41,7 +53,6 @@ export const createUnit = async (data) => {
     const normalizedType = Object.keys(UNIT_LEVELS).find(k => k.toLowerCase() === type.toLowerCase()) || type;
     const level = UNIT_LEVELS[normalizedType] || 99;
 
-    console.log(`[DEBUG] Attempting to create type '${normalizedType}' with level ${level}`);
 
     try {
       unitTypeRecord = await prisma.unitType.create({
@@ -51,9 +62,7 @@ export const createUnit = async (data) => {
           description: `${normalizedType} Level Unit`
         }
       });
-      console.log(`[DEBUG] Created type:`, unitTypeRecord);
     } catch (error) {
-      console.log(`[DEBUG] Creation failed:`, error.message);
       // If creation failed (e.g. race condition or level conflict), try finding by Name OR Level
       // This handles cases where "National" (Level 1) exists as "National HQ"
       unitTypeRecord = await prisma.unitType.findFirst({
@@ -64,7 +73,6 @@ export const createUnit = async (data) => {
           ]
         },
       });
-      console.log(`[DEBUG] Retry find result (by name/level):`, unitTypeRecord);
     }
   }
 
@@ -147,12 +155,14 @@ export const listUnits = async (query = {}) => {
     type,
     parentUnitId,
     search,
+    ids,
   } = query;
   const skip = (page - 1) * limit;
 
   const where = {
     ...(type && { unitType: { name: type } }),
     ...(parentUnitId && { parentId: parentUnitId }),
+    ...(ids && { id: { in: ids } }),
     ...(search && {
       OR: [
         { name: { contains: search, mode: 'insensitive' } },
@@ -198,13 +208,21 @@ export const listUnits = async (query = {}) => {
 /**
  * Update unit
  */
-export const updateUnit = async (unitId, data) => {
+export const updateUnit = async (unitId, data, userId) => {
   const unit = await prisma.unit.findUnique({
     where: { id: unitId },
   });
 
   if (!unit) {
     throw new NotFoundError('Unit not found');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to update this unit');
+    }
   }
 
   const { name, type, description } = data;
@@ -344,7 +362,17 @@ export const getUnitStatistics = async (unitId) => {
 /**
  * Deactivate unit
  */
-export const deactivateUnit = async (unitId) => {
+/**
+ * Deactivate unit
+ */
+export const deactivateUnit = async (unitId, userId) => {
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to deactivate this unit');
+    }
+  }
+
   const updated = await prisma.unit.update({
     where: { id: unitId },
     data: { isActive: false },

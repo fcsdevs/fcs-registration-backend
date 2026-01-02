@@ -12,6 +12,10 @@ import {
 
 const prisma = getPrismaClient();
 
+import { checkScopeAccess } from '../users/service.js';
+
+// ... existing imports
+
 /**
  * Create event center
  */
@@ -25,6 +29,12 @@ export const createCenter = async (data, userId) => {
 
   if (!event) {
     throw new NotFoundError('Event');
+  }
+
+  // Permission Check
+  const hasAccess = await checkScopeAccess(userId, event.unitId);
+  if (!hasAccess) {
+    throw new ForbiddenError('You do not have permission to create centers for this event');
   }
 
   // Only ONSITE or HYBRID events can have centers
@@ -173,6 +183,7 @@ export const listActiveCenters = async (eventId, query = {}) => {
         state: { select: { id: true, name: true } },
         address: true,
         capacity: true,
+        isActive: true,
       },
       orderBy: { centerName: 'asc' },
     }),
@@ -185,15 +196,24 @@ export const listActiveCenters = async (eventId, query = {}) => {
 /**
  * Update center
  */
-export const updateCenter = async (centerId, data) => {
+export const updateCenter = async (centerId, data, userId) => {
   const { centerName, address, capacity, isActive } = data;
 
   const center = await prisma.eventCenter.findUnique({
     where: { id: centerId },
+    include: { event: true },
   });
 
   if (!center) {
     throw new NotFoundError('Center');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, center.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to update centers for this event');
+    }
   }
 
   return prisma.eventCenter.update({
@@ -210,14 +230,23 @@ export const updateCenter = async (centerId, data) => {
 /**
  * Add center admin
  */
-export const addCenterAdmin = async (centerId, userId) => {
+export const addCenterAdmin = async (centerId, userId, requesterUserId) => {
   // Verify center exists
   const center = await prisma.eventCenter.findUnique({
     where: { id: centerId },
+    include: { event: true },
   });
 
   if (!center) {
     throw new NotFoundError('Center');
+  }
+
+  // Permission Check
+  if (requesterUserId) {
+    const hasAccess = await checkScopeAccess(requesterUserId, center.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to manage admins for this center');
+    }
   }
 
   // Verify user exists
@@ -250,7 +279,22 @@ export const addCenterAdmin = async (centerId, userId) => {
 /**
  * Remove center admin
  */
-export const removeCenterAdmin = async (centerId, userId) => {
+export const removeCenterAdmin = async (centerId, userId, requesterUserId) => {
+  const center = await prisma.eventCenter.findUnique({
+    where: { id: centerId },
+    include: { event: true },
+  });
+
+  if (!center) throw new NotFoundError('Center');
+
+  // Permission Check
+  if (requesterUserId) {
+    const hasAccess = await checkScopeAccess(requesterUserId, center.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to manage admins for this center');
+    }
+  }
+
   const admin = await prisma.centerAdmin.findFirst({
     where: { centerId, userId },
   });
@@ -310,13 +354,22 @@ export const getCenterStatistics = async (centerId) => {
 /**
  * Deactivate center (soft delete)
  */
-export const deactivateCenter = async (centerId) => {
+export const deactivateCenter = async (centerId, userId) => {
   const center = await prisma.eventCenter.findUnique({
     where: { id: centerId },
+    include: { event: true },
   });
 
   if (!center) {
     throw new NotFoundError('Center');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, center.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to deactivate this center');
+    }
   }
 
   return prisma.eventCenter.update({

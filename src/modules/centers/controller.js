@@ -36,6 +36,9 @@ export const createCenterHandler = async (req, res, next) => {
   }
 };
 
+import { checkScopeAccess } from '../users/service.js';
+import { getEventById } from '../events/service.js';
+
 /**
  * GET /api/centers - List centers for event
  */
@@ -58,6 +61,19 @@ export const listCentersHandler = async (req, res, next) => {
           code: 'VALIDATION_ERROR',
           message: 'eventId is required',
         },
+      });
+    }
+
+    // Check Access
+    const event = await getEventById(eventId); // Throws if not found
+    const hasAccess = await checkScopeAccess(req.userId, event.unitId);
+    if (!hasAccess) {
+      // Return 403 Forbidden
+      return res.status(403).json({
+        error: {
+          code: 'FORBIDDEN',
+          message: 'You do not have permission to view centers for this event'
+        }
       });
     }
 
@@ -141,7 +157,7 @@ export const updateCenterHandler = async (req, res, next) => {
       });
     }
 
-    const center = await updateCenter(req.params.id, value);
+    const center = await updateCenter(req.params.id, value, req.userId);
     res.status(200).json({
       data: center,
       message: 'Center updated successfully',
@@ -167,7 +183,7 @@ export const addCenterAdminHandler = async (req, res, next) => {
       });
     }
 
-    const admin = await addCenterAdmin(req.params.id, userId);
+    const admin = await addCenterAdmin(req.params.id, userId, req.userId);
     res.status(201).json({
       data: admin,
       message: 'Center admin added successfully',
@@ -182,7 +198,7 @@ export const addCenterAdminHandler = async (req, res, next) => {
  */
 export const removeCenterAdminHandler = async (req, res, next) => {
   try {
-    const result = await removeCenterAdmin(req.params.id, req.params.userId);
+    const result = await removeCenterAdmin(req.params.id, req.params.userId, req.userId);
     res.status(200).json({
       data: result,
     });
@@ -210,7 +226,7 @@ export const getCenterStatisticsHandler = async (req, res, next) => {
  */
 export const deactivateCenterHandler = async (req, res, next) => {
   try {
-    const center = await deactivateCenter(req.params.id);
+    const center = await deactivateCenter(req.params.id, req.userId);
     res.status(200).json({
       data: center,
       message: 'Center deactivated successfully',

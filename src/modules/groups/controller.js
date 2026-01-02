@@ -59,7 +59,7 @@ export const createGroupHandler = async (req, res, next) => {
       });
     }
 
-    const group = await createGroup(value);
+    const group = await createGroup(value, req.user.id);
     res.status(201).json({
       data: group,
       message: 'Group created successfully',
@@ -127,7 +127,7 @@ export const updateGroupHandler = async (req, res, next) => {
       });
     }
 
-    const group = await updateGroup(req.params.groupId, value);
+    const group = await updateGroup(req.params.groupId, value, req.user.id);
     res.status(200).json({
       data: group,
       message: 'Group updated successfully',
@@ -177,7 +177,7 @@ export const assignMemberHandler = async (req, res, next) => {
       });
     }
 
-    const registration = await assignMemberToGroup(req.params.groupId, memberId);
+    const registration = await assignMemberToGroup(req.params.groupId, memberId, req.user.id);
     res.status(200).json({
       data: registration,
       message: 'Member assigned to group',
@@ -194,7 +194,8 @@ export const removeMemberHandler = async (req, res, next) => {
   try {
     const registration = await removeMemberFromGroup(
       req.params.groupId,
-      req.params.memberId
+      req.params.memberId,
+      req.user.id
     );
 
     res.status(200).json({
@@ -224,7 +225,8 @@ export const bulkAssignHandler = async (req, res, next) => {
     const result = await bulkAssignGroups(
       value.eventId,
       value.assignments || [],
-      value.strategy
+      value.strategy,
+      req.user.id
     );
 
     res.status(200).json({
@@ -255,7 +257,7 @@ export const getGroupStatsHandler = async (req, res, next) => {
  */
 export const deactivateGroupHandler = async (req, res, next) => {
   try {
-    const group = await deactivateGroup(req.params.groupId);
+    const group = await deactivateGroup(req.params.groupId, req.user.id);
     res.status(200).json({
       data: group,
       message: 'Group deactivated',

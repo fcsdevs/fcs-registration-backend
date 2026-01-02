@@ -47,28 +47,25 @@ export const getEventAnalytics = async (eventId, query = {}) => {
     _count: {
       id: true,
     },
-    _avg: {
-      durationSeconds: true,
-    },
   });
 
   // Get center statistics
-  const centers = await prisma.center.findMany({
+  const centers = await prisma.eventCenter.findMany({
     where: { eventId, isActive: true },
     include: {
       _count: {
-        select: { registrations: true, attendanceRecords: true },
+        select: { registrations: true, attendances: true },
       },
     },
   });
 
   const centerStats = centers.map((center) => ({
     centerId: center.id,
-    name: center.name,
+    name: center.centerName,
     state: center.state,
     capacity: center.capacity,
     registrations: center._count.registrations,
-    attendance: center._count.attendanceRecords,
+    attendance: center._count.attendances,
     utilizationRate: center.capacity
       ? (center._count.registrations / center.capacity) * 100
       : 0,
@@ -89,7 +86,7 @@ export const getEventAnalytics = async (eventId, query = {}) => {
   return {
     event: {
       id: event.id,
-      name: event.name,
+      name: event.title,
       startDate: event.startDate,
       endDate: event.endDate,
       unit: event.unit,
@@ -107,7 +104,7 @@ export const getEventAnalytics = async (eventId, query = {}) => {
     attendanceByMode: attendanceByMode.map((a) => ({
       mode: a.participationMode,
       count: a._count.id,
-      avgDuration: a._avg.durationSeconds,
+      // avgDuration: a._avg.durationSeconds, // Field does not exist
     })),
     centerStats,
   };
@@ -117,7 +114,7 @@ export const getEventAnalytics = async (eventId, query = {}) => {
  * Get center analytics (registrations, attendance, capacity)
  */
 export const getCenterAnalytics = async (centerId, query = {}) => {
-  const center = await prisma.center.findUnique({
+  const center = await prisma.eventCenter.findUnique({
     where: { id: centerId },
     include: { event: true },
   });
@@ -183,14 +180,14 @@ export const getCenterAnalytics = async (centerId, query = {}) => {
   return {
     center: {
       id: center.id,
-      name: center.name,
+      name: center.centerName,
       state: center.state,
       address: center.address,
       capacity: center.capacity,
     },
     event: {
       id: center.event.id,
-      name: center.event.name,
+      name: center.event.title,
     },
     statistics: {
       totalRegistrations: registrations.length,
@@ -302,7 +299,7 @@ export const getMemberAttendanceReport = async (memberId, query = {}) => {
     eventAttendance: Object.values(byEvent).map((e) => ({
       event: {
         id: e.event.id,
-        name: e.event.name,
+        name: e.event.title,
         startDate: e.event.startDate,
         endDate: e.event.endDate,
       },
@@ -341,7 +338,7 @@ export const getStateAnalytics = async (query = {}) => {
   });
 
   // Get centers by state
-  const centersByState = await prisma.center.groupBy({
+  const centersByState = await prisma.eventCenter.groupBy({
     by: ['state'],
     where: {
       ...(eventId && { eventId }),
@@ -418,7 +415,7 @@ export const exportEventReport = async (eventId, format = 'json') => {
         fcsCode: r.member.fcsCode,
       },
       participationMode: r.participationMode,
-      center: r.center?.name || 'N/A',
+      center: r.center?.centerName || 'N/A',
       group: r.group?.name || 'Unassigned',
       status: r.status,
       registeredAt: r.createdAt,
@@ -477,13 +474,44 @@ export const getDashboardSummary = async (query = {}) => {
   const { eventId, centerId } = query;
 
   // Total members
+  const memberWhere = { isActive: true };
+  let eventWhere = { isPublished: true };
+  let isNational = false;
+
+  if (query.unitId) {
+    const scopeUnit = await prisma.unit.findUnique({
+      where: { id: query.unitId },
+      include: { unitType: true }
+    });
+    if (scopeUnit && scopeUnit.unitType) {
+      const typeName = scopeUnit.unitType.name.toLowerCase();
+      if (typeName.includes('national')) {
+        isNational = true;
+      } else {
+        // Member Scoping
+        if (typeName.includes('state')) memberWhere.state = { contains: scopeUnit.name, mode: 'insensitive' };
+        else if (typeName.includes('zone')) memberWhere.zone = { contains: scopeUnit.name, mode: 'insensitive' };
+        else if (typeName.includes('branch')) memberWhere.branch = { contains: scopeUnit.name, mode: 'insensitive' };
+
+        // Event Scoping (Strict Ownership for KPIs)
+        // We can also include events from children? Yes (e.g. State Admin sees total of all branch events)
+        // Use the hierarchy helper from previously? We can't import it easily if not exported.
+        // We'll trust strict ownership + direct children for now or just restrict to THIS unit ID to keep it simple and accurate to "Branch Performance".
+        // Actually, a State Admin definitely wants to see aggregate of the State.
+        // Let's settle on: If filtering by Unit, we filter events by that Unit ID. (Strict ownership).
+        // Aggregating descendants is expensive without pre-calculated stats.
+        eventWhere.unitId = query.unitId;
+      }
+    }
+  }
+
   const totalMembers = await prisma.member.count({
-    where: { isActive: true },
+    where: memberWhere,
   });
 
   // Active events
   const activeEvents = await prisma.event.count({
-    where: { isPublished: true },
+    where: eventWhere,
   });
 
   // This month registrations
@@ -495,6 +523,8 @@ export const getDashboardSummary = async (query = {}) => {
     where: {
       createdAt: { gte: thisMonthStart },
       ...(eventId && { eventId }),
+      // Scope registrations to events owned by this unit (if not National)
+      ...(query.unitId && !isNational && { event: { unitId: query.unitId } })
     },
   });
 
@@ -503,6 +533,7 @@ export const getDashboardSummary = async (query = {}) => {
     where: {
       checkInTime: { gte: thisMonthStart },
       ...(centerId && { centerId }),
+      ...(query.unitId && !isNational && { event: { unitId: query.unitId } })
     },
   });
 
@@ -514,10 +545,10 @@ export const getDashboardSummary = async (query = {}) => {
 
   // Top events by registration
   const topEvents = await prisma.event.findMany({
-    where: { isPublished: true },
+    where: eventWhere,
     include: {
       _count: {
-        select: { registrations: true, attendanceRecords: true },
+        select: { registrations: true, attendances: true },
       },
     },
     orderBy: {
@@ -525,6 +556,7 @@ export const getDashboardSummary = async (query = {}) => {
     },
     take: 5,
   });
+
 
   return {
     overview: {
@@ -536,9 +568,9 @@ export const getDashboardSummary = async (query = {}) => {
     },
     topEvents: topEvents.map((e) => ({
       id: e.id,
-      name: e.name,
+      name: e.title, // Also fixed: Event model has 'title', not 'name' in schema?
       registrations: e._count.registrations,
-      attendance: e._count.attendanceRecords,
+      attendance: e._count.attendances,
     })),
   };
 };

@@ -347,6 +347,12 @@ export const createPredefinedRoles = async () => {
       unitScope: true,
     },
     {
+      name: 'Registrar',
+      description: 'Authorized to register members and confirm attendance',
+      permissions: ['create_members', 'edit_members', 'view_members', 'check_in_members', 'check_out_members', 'verify_attendance', 'view_events'],
+      unitScope: true,
+    },
+    {
       name: 'Unit Leader',
       description: 'Generic Unit Leader',
       permissions: ['manage_unit', 'view_unit'],

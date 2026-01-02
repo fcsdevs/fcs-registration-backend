@@ -8,7 +8,9 @@ import {
 import {
   ValidationError,
   NotFoundError,
+  ForbiddenError,
 } from '../../middleware/error-handler.js';
+import { checkScopeAccess } from '../users/service.js';
 
 const prisma = getPrismaClient();
 
@@ -27,6 +29,12 @@ export const createEvent = async (data, userId) => {
     participationMode,
     capacity,
   } = data;
+
+  // Permission Check
+  const hasAccess = await checkScopeAccess(userId, unitId);
+  if (!hasAccess) {
+    throw new ForbiddenError('You do not have permission to create events for this unit');
+  }
 
   // Verify unit exists
   const unit = await prisma.unit.findUnique({
@@ -112,8 +120,68 @@ export const listEvents = async (query) => {
     where.title = { contains: search, mode: 'insensitive' };
   }
 
+  // Helper to get ancestor IDs
+  const getAncestorIds = async (unitId) => {
+    let ancestors = [];
+    let currentId = unitId;
+    while (currentId) {
+      const unit = await prisma.unit.findUnique({
+        where: { id: currentId },
+        select: { parentId: true }
+      });
+      if (unit && unit.parentId) {
+        ancestors.push(unit.parentId);
+        currentId = unit.parentId;
+      } else {
+        currentId = null;
+      }
+    }
+    return ancestors;
+  };
+
+  // Helper (simplified) for descendant IDs - simplified for depth 3 (State->Zone->Area->Branch)
+  const getDescendantIds = async (unitId) => {
+    // Breadth-first or naive recursive
+    const children = await prisma.unit.findMany({ where: { parentId: unitId }, select: { id: true } });
+    let ids = children.map(c => c.id);
+    for (const childId of ids) {
+      const grandChildren = await prisma.unit.findMany({ where: { parentId: childId }, select: { id: true } });
+      ids = [...ids, ...grandChildren.map(gc => gc.id)];
+      // One more level for safety (Area -> Branch)
+      for (const gcId of grandChildren.map(gc => gc.id)) {
+        const greatGrandChildren = await prisma.unit.findMany({ where: { parentId: gcId }, select: { id: true } });
+        ids = [...ids, ...greatGrandChildren.map(ggc => ggc.id)];
+      }
+    }
+    return ids;
+  };
+
   if (unitId) {
-    where.unitId = unitId;
+    // Hierarchical Event Visibility
+    // 1. Own Events
+    // 2. Ancestor Events (e.g. National Conference visible to Branch)
+    // 3. Descendant Events (e.g. Branch Fellowship visible to State Admin)
+
+    // Check if unit is National (optimizes query)
+    const unit = await prisma.unit.findUnique({ where: { id: unitId }, include: { unitType: true } });
+    if (unit && !unit.unitType.name.includes('National')) {
+      const ancestors = await getAncestorIds(unitId);
+      const descendants = await getDescendantIds(unitId);
+      where.unitId = { in: [unitId, ...ancestors, ...descendants] };
+    }
+    // If National, we show all? Or just National events? 
+    // Usually National Admin wants to see everything.
+    // So if National, we effectively ignore the filter or allow all.
+    // But the current logic 'if (unitId)' implies filtering.
+    // If unitId is passed as National ID, strict filtering would hide Branch events.
+    // So generally, if National, we might want to skip this filter or include all descendants.
+    else if (unit) {
+      // Is National
+      // No filter needed implies "All events"
+      // But if they clicked "National HQ" specifically in a filter dropdown, they might only want National HQ events.
+      // However, in this context (Dashboard scoping), National Admin should see all.
+      // Let's assume if unitId is National, we don't restrict `where.unitId`.
+    }
   }
 
   if (participationMode) {
@@ -121,7 +189,8 @@ export const listEvents = async (query) => {
   }
 
   if (isPublished !== undefined) {
-    where.isPublished = isPublished === 'true';
+    // Handle both boolean and string values
+    where.isPublished = isPublished === true || isPublished === 'true';
   }
 
   const [events, total] = await Promise.all([
@@ -143,7 +212,7 @@ export const listEvents = async (query) => {
 /**
  * Update event
  */
-export const updateEvent = async (eventId, data) => {
+export const updateEvent = async (eventId, data, userId) => {
   const {
     title,
     description,
@@ -161,6 +230,14 @@ export const updateEvent = async (eventId, data) => {
 
   if (!event) {
     throw new NotFoundError('Event');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to update this event');
+    }
   }
 
   // Check if registration window has closed
@@ -195,13 +272,24 @@ export const updateEvent = async (eventId, data) => {
 /**
  * Publish event
  */
-export const publishEvent = async (eventId) => {
+/**
+ * Publish event
+ */
+export const publishEvent = async (eventId, userId) => {
   const event = await prisma.event.findUnique({
     where: { id: eventId },
   });
 
   if (!event) {
     throw new NotFoundError('Event');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to publish this event');
+    }
   }
 
   if (event.isPublished) {
@@ -292,7 +380,7 @@ export const getEventStatistics = async (eventId) => {
 /**
  * Create or update event settings
  */
-export const updateEventSettings = async (eventId, data) => {
+export const updateEventSettings = async (eventId, data, userId) => {
   const {
     requireGroupAssignment,
     allowSelfRegistration,
@@ -307,6 +395,14 @@ export const updateEventSettings = async (eventId, data) => {
 
   if (!event) {
     throw new NotFoundError('Event');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to update settings for this event');
+    }
   }
 
   const existingSettings = await prisma.eventSetting.findUnique({

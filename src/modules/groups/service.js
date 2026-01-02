@@ -1,13 +1,18 @@
 import { getPrismaClient } from '../../lib/prisma.js';
-import { NotFoundError, AppError } from '../../middleware/error-handler.js';
+import { checkScopeAccess } from '../users/service.js';
+import {
+  NotFoundError,
+  AppError,
+  ForbiddenError
+} from '../../middleware/error-handler.js';
 
 const prisma = getPrismaClient();
 
 /**
  * Create event group
  */
-export const createGroup = async (data) => {
-  const { eventId, name, type, description, capacity, isActive = true } = data;
+export const createGroup = async (data, userId) => {
+  const { eventId, name, type, description, capacity } = data;
 
   // Verify event exists
   const event = await prisma.event.findUnique({
@@ -18,6 +23,14 @@ export const createGroup = async (data) => {
     throw new NotFoundError('Event not found');
   }
 
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to create groups for this event');
+    }
+  }
+
   const group = await prisma.eventGroup.create({
     data: {
       eventId,
@@ -25,7 +38,6 @@ export const createGroup = async (data) => {
       type, // BIBLE_STUDY | WORKSHOP | BREAKOUT
       description,
       capacity,
-      isActive,
     },
   });
 
@@ -40,80 +52,88 @@ export const getGroupById = async (groupId) => {
     where: { id: groupId },
     include: {
       event: true,
-      registrations: {
-        include: {
-          member: true,
-        },
-      },
       _count: {
-        select: { registrations: true },
-      },
-    },
+        select: { assignments: true }
+      }
+    }
   });
 
   if (!group) {
     throw new NotFoundError('Group not found');
   }
 
-  return group;
+  return {
+    ...group,
+    memberCount: group._count.assignments
+  };
 };
 
 /**
- * List groups for event
+ * List groups by event
  */
-export const listGroupsByEvent = async (eventId, query = {}) => {
-  const { page = 1, limit = 50, type, isActive = true } = query;
+export const listGroupsByEvent = async (eventId, params = {}) => {
+  const { page = 1, limit = 10, type } = params;
   const skip = (page - 1) * limit;
 
   const where = {
-    eventId,
+    ...(eventId && { eventId }),
     ...(type && { type }),
-    ...(isActive !== null && { isActive }),
   };
+  console.log('[GroupsService] listGroupsByEvent called', { eventId, params });
+  console.log('[GroupsService] Prisma Query Where:', where);
 
   const [groups, total] = await Promise.all([
     prisma.eventGroup.findMany({
       where,
+      skip,
+      take: Number(limit),
       include: {
         _count: {
-          select: { registrations: true },
-        },
+          select: { assignments: true }
+        }
       },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
+      orderBy: { createdAt: 'desc' }
     }),
-    prisma.eventGroup.count({ where }),
+    prisma.eventGroup.count({ where })
   ]);
+  console.log(`[GroupsService] Found ${groups.length} groups. Total: ${total}`);
 
   return {
-    data: groups.map((g) => ({
+    groups: groups.map(g => ({
       ...g,
-      memberCount: g._count.registrations,
-      spotsAvailable: g.capacity ? Math.max(0, g.capacity - g._count.registrations) : null,
+      memberCount: g._count.assignments
     })),
-    pagination: {
-      page,
-      limit,
+    meta: {
       total,
-      pages: Math.ceil(total / limit),
-    },
+      page: Number(page),
+      limit: Number(limit),
+      pages: Math.ceil(total / Number(limit))
+    }
   };
 };
 
 /**
  * Update group
  */
-export const updateGroup = async (groupId, data) => {
+export const updateGroup = async (groupId, data, userId) => {
   const group = await prisma.eventGroup.findUnique({
     where: { id: groupId },
+    include: { event: true },
   });
 
   if (!group) {
     throw new NotFoundError('Group not found');
   }
 
-  const { name, description, capacity, isActive } = data;
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, group.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to update groups for this event');
+    }
+  }
+
+  const { name, description, capacity } = data;
 
   const updated = await prisma.eventGroup.update({
     where: { id: groupId },
@@ -121,30 +141,33 @@ export const updateGroup = async (groupId, data) => {
       ...(name && { name }),
       ...(description && { description }),
       ...(capacity && { capacity }),
-      ...(isActive !== undefined && { isActive }),
+      ...(capacity && { capacity }),
     },
     include: {
       _count: {
-        select: { registrations: true },
+        select: { assignments: true },
       },
     },
   });
 
   return {
     ...updated,
-    memberCount: updated._count.registrations,
+    memberCount: updated._count.assignments,
   };
 };
 
 /**
  * Assign member to group
  */
-export const assignMemberToGroup = async (groupId, memberId) => {
+export const assignMemberToGroup = async (groupId, memberId, userId) => {
+  if (!userId) throw new AppError('User ID is required for assignment', 400);
+
   const group = await prisma.eventGroup.findUnique({
     where: { id: groupId },
     include: {
+      event: true,
       _count: {
-        select: { registrations: true },
+        select: { assignments: true },
       },
     },
   });
@@ -153,8 +176,16 @@ export const assignMemberToGroup = async (groupId, memberId) => {
     throw new NotFoundError('Group not found');
   }
 
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, group.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to manage groups for this event');
+    }
+  }
+
   // Check capacity
-  if (group.capacity && group._count.registrations >= group.capacity) {
+  if (group.capacity && group._count.assignments >= group.capacity) {
     throw new AppError('Group is at full capacity', 400);
   }
 
@@ -170,107 +201,143 @@ export const assignMemberToGroup = async (groupId, memberId) => {
     throw new NotFoundError('Registration not found for member in this event');
   }
 
-  // Update registration with group
-  const updated = await prisma.registration.update({
-    where: { id: registration.id },
-    data: { groupId },
-    include: {
-      member: true,
-      group: true,
+  // Upsert GroupAssignment
+  const assignment = await prisma.groupAssignment.upsert({
+    where: { registrationId: registration.id },
+    create: {
+      groupId,
+      registrationId: registration.id,
+      memberId,
+      assignedBy: userId
     },
+    update: {
+      groupId,
+      assignedBy: userId
+    },
+    include: {
+      group: true,
+      member: true
+    }
   });
 
-  return updated;
+  return assignment;
 };
 
 /**
  * Remove member from group
  */
-export const removeMemberFromGroup = async (groupId, memberId) => {
+export const removeMemberFromGroup = async (groupId, memberId, userId) => {
+  const group = await prisma.eventGroup.findUnique({ where: { id: groupId }, include: { event: true } });
+  if (!group) throw new NotFoundError('Group not found');
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, group.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to manage groups for this event');
+    }
+  }
+
   // Find registration
   const registration = await prisma.registration.findFirst({
     where: {
       memberId,
-      groupId,
+      eventId: group.eventId
     },
   });
 
   if (!registration) {
+    throw new NotFoundError('Registration not found');
+  }
+
+  const assignment = await prisma.groupAssignment.findUnique({
+    where: { registrationId: registration.id }
+  });
+
+  if (!assignment || assignment.groupId !== groupId) {
     throw new NotFoundError('Member not found in group');
   }
 
-  const updated = await prisma.registration.update({
-    where: { id: registration.id },
-    data: { groupId: null },
-    include: {
-      member: true,
-    },
-  });
+  await prisma.groupAssignment.delete({ where: { id: assignment.id } });
 
-  return updated;
+  return { success: true, message: 'Member removed from group' };
 };
 
 /**
  * Get group members
  */
-export const getGroupMembers = async (groupId, query = {}) => {
-  const { page = 1, limit = 50 } = query;
+export const getGroupMembers = async (groupId, params = {}) => {
+  const { page = 1, limit = 10 } = params;
   const skip = (page - 1) * limit;
 
-  const group = await prisma.eventGroup.findUnique({
-    where: { id: groupId },
-  });
+  const where = { groupId };
 
-  if (!group) {
-    throw new NotFoundError('Group not found');
-  }
-
-  const [members, total] = await Promise.all([
-    prisma.registration.findMany({
-      where: { groupId },
-      include: {
-        member: true,
-      },
-      orderBy: { createdAt: 'desc' },
+  const [assignments, total] = await Promise.all([
+    prisma.groupAssignment.findMany({
+      where,
       skip,
-      take: limit,
+      take: Number(limit),
+      include: {
+        member: true
+      },
+      orderBy: { assignedAt: 'desc' }
     }),
-    prisma.registration.count({ where: { groupId } }),
+    prisma.groupAssignment.count({ where })
   ]);
 
   return {
-    data: members.map((m) => ({
-      registrationId: m.id,
-      member: m.member,
-      participationMode: m.participationMode,
-      joinedAt: m.createdAt,
-    })),
-    group: {
-      id: group.id,
-      name: group.name,
-      type: group.type,
-      capacity: group.capacity,
-      memberCount: total,
-    },
-    pagination: {
-      page,
-      limit,
+    members: assignments.map(a => a.member),
+    meta: {
       total,
-      pages: Math.ceil(total / limit),
-    },
+      page: Number(page),
+      limit: Number(limit),
+      pages: Math.ceil(total / Number(limit))
+    }
+  };
+};
+
+/**
+ * Get group statistics
+ */
+export const getGroupStatistics = async (groupId) => {
+  const group = await prisma.eventGroup.findUnique({
+    where: { id: groupId },
+    include: {
+      _count: {
+        select: { assignments: true }
+      }
+    }
+  });
+
+  if (!group) throw new NotFoundError('Group not found');
+
+  return {
+    capacity: group.capacity,
+    memberCount: group._count.assignments,
+    occupancyRate: group.capacity ? (group._count.assignments / group.capacity) * 100 : 0
   };
 };
 
 /**
  * Bulk assign members to groups (auto-assignment or manual)
  */
-export const bulkAssignGroups = async (eventId, assignments, strategy = 'manual') => {
+export const bulkAssignGroups = async (eventId, assignments, strategy = 'manual', userId) => {
+  if (!userId) throw new AppError('User ID required for bulk assignment', 400);
+
   const event = await prisma.event.findUnique({
     where: { id: eventId },
   });
 
   if (!event) {
     throw new NotFoundError('Event not found');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to manage groups for this event');
+    }
   }
 
   let results = {
@@ -283,7 +350,7 @@ export const bulkAssignGroups = async (eventId, assignments, strategy = 'manual'
     // Manual assignments provided in array
     for (const assignment of assignments) {
       try {
-        await assignMemberToGroup(assignment.groupId, assignment.memberId);
+        await assignMemberToGroup(assignment.groupId, assignment.memberId, userId);
         results.assigned++;
       } catch (error) {
         results.failed++;
@@ -297,23 +364,32 @@ export const bulkAssignGroups = async (eventId, assignments, strategy = 'manual'
   } else if (strategy === 'auto') {
     // Auto-distribute members to groups evenly
     const groups = await prisma.eventGroup.findMany({
-      where: { eventId, isActive: true },
+      where: { eventId },
     });
 
-    const registrations = await prisma.registration.findMany({
+    if (groups.length === 0) {
+      throw new AppError('No active groups found for this event', 400);
+    }
+
+    // Find registrations without a group assignment
+    const unassignedRegistrations = await prisma.registration.findMany({
       where: {
         eventId,
-        groupId: null,
+        groupAssignment: null,
       },
     });
 
     let groupIndex = 0;
-    for (const reg of registrations) {
+    for (const reg of unassignedRegistrations) {
       const targetGroup = groups[groupIndex % groups.length];
       try {
-        await prisma.registration.update({
-          where: { id: reg.id },
-          data: { groupId: targetGroup.id },
+        await prisma.groupAssignment.create({
+          data: {
+            groupId: targetGroup.id,
+            registrationId: reg.id,
+            memberId: reg.memberId,
+            assignedBy: userId
+          }
         });
         results.assigned++;
       } catch (error) {
@@ -331,96 +407,35 @@ export const bulkAssignGroups = async (eventId, assignments, strategy = 'manual'
 };
 
 /**
- * Get group statistics
- */
-export const getGroupStatistics = async (groupId) => {
-  const group = await prisma.eventGroup.findUnique({
-    where: { id: groupId },
-    include: {
-      _count: {
-        select: { registrations: true },
-      },
-    },
-  });
-
-  if (!group) {
-    throw new NotFoundError('Group not found');
-  }
-
-  // Get attendance for group members
-  const groupAttendance = await prisma.attendanceRecord.findMany({
-    where: {
-      registration: {
-        groupId,
-      },
-    },
-    include: {
-      registration: {
-        include: {
-          member: true,
-        },
-      },
-    },
-  });
-
-  const attendanceByMode = {};
-  groupAttendance.forEach((a) => {
-    const mode = a.participationMode;
-    attendanceByMode[mode] = (attendanceByMode[mode] || 0) + 1;
-  });
-
-  const capacityUtilization = group.capacity
-    ? (group._count.registrations / group.capacity) * 100
-    : 0;
-
-  const attendanceRate =
-    group._count.registrations > 0
-      ? (groupAttendance.length / group._count.registrations) * 100
-      : 0;
-
-  return {
-    group: {
-      id: group.id,
-      name: group.name,
-      type: group.type,
-    },
-    statistics: {
-      totalMembers: group._count.registrations,
-      totalAttendance: groupAttendance.length,
-      attendanceRate: parseFloat(attendanceRate.toFixed(2)),
-      capacityUtilization: group.capacity
-        ? parseFloat(capacityUtilization.toFixed(2))
-        : null,
-    },
-    attendanceByMode: Object.entries(attendanceByMode).map(([mode, count]) => ({
-      mode,
-      count,
-    })),
-  };
-};
-
-/**
  * Deactivate group
  */
-export const deactivateGroup = async (groupId) => {
+export const deactivateGroup = async (groupId, userId) => {
   const group = await prisma.eventGroup.findUnique({
     where: { id: groupId },
+    include: { event: true },
   });
 
   if (!group) {
     throw new NotFoundError('Group not found');
   }
 
-  // Unassign all members
-  await prisma.registration.updateMany({
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, group.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to deactivate groups for this event');
+    }
+  }
+
+  // Delete all assignments
+  await prisma.groupAssignment.deleteMany({
     where: { groupId },
-    data: { groupId: null },
   });
 
-  const updated = await prisma.eventGroup.update({
-    where: { id: groupId },
-    data: { isActive: false },
-  });
+  // const updated = await prisma.eventGroup.update({
+  //   where: { id: groupId },
+  //   data: { isActive: false },
+  // });
 
-  return updated;
+  return group;
 };

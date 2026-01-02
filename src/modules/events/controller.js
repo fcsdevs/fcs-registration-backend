@@ -34,6 +34,8 @@ export const createEventHandler = async (req, res, next) => {
   }
 };
 
+import { getEffectiveScope } from '../users/service.js';
+
 /**
  * GET /api/events - List events
  */
@@ -49,10 +51,23 @@ export const listEventsHandler = async (req, res, next) => {
       });
     }
 
+    // Enforce Scope
+    const scope = await getEffectiveScope(req.userId);
+    let effectiveUnitId = req.query.unitId;
+
+    if (!scope.isGlobal) {
+      // Current logic in service allows showing ancestor/descendant events
+      // But we should default the 'perspective' to the user's unit if not specified
+      // If they requested a different unit, we might want to check if it's visible.
+      // For SIMPLICITY and SECURITY: We force the unitId param to be the user's unit.
+      // The service logic will then expand this to show ancestors/descendants.
+      effectiveUnitId = scope.unitId;
+    }
+
     const events = await listEvents({
       ...value,
       search: req.query.search,
-      unitId: req.query.unitId,
+      unitId: effectiveUnitId,
       participationMode: req.query.participationMode,
       isPublished: req.query.isPublished,
     });
@@ -92,7 +107,7 @@ export const updateEventHandler = async (req, res, next) => {
       });
     }
 
-    const event = await updateEvent(req.params.id, value);
+    const event = await updateEvent(req.params.id, value, req.userId);
     res.status(200).json({
       data: event,
       message: 'Event updated successfully',
@@ -107,7 +122,7 @@ export const updateEventHandler = async (req, res, next) => {
  */
 export const publishEventHandler = async (req, res, next) => {
   try {
-    const event = await publishEvent(req.params.id);
+    const event = await publishEvent(req.params.id, req.userId);
     res.status(200).json({
       data: event,
       message: 'Event published successfully',
@@ -136,7 +151,7 @@ export const getEventStatisticsHandler = async (req, res, next) => {
  */
 export const updateEventSettingsHandler = async (req, res, next) => {
   try {
-    const settings = await updateEventSettings(req.params.id, req.body);
+    const settings = await updateEventSettings(req.params.id, req.body, req.userId);
     res.status(200).json({
       data: settings,
       message: 'Event settings updated successfully',

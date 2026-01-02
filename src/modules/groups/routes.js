@@ -21,6 +21,11 @@ const router = Router();
 router.post('/', authenticate, createGroupHandler);
 
 /**
+ * GET /api/groups
+ */
+router.get('/', authenticate, listGroupsHandler);
+
+/**
  * GET /api/groups/event/:eventId
  */
 router.get('/event/:eventId', authenticate, listGroupsHandler);

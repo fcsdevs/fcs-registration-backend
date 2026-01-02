@@ -55,6 +55,7 @@ async function main() {
     { name: 'Area Admin', description: 'Area level administrator', permissions: ['area_all'] },
     { name: 'Branch Admin', description: 'Branch/Local level administrator', permissions: ['branch_all'] },
     { name: 'Center Admin', description: 'Event Center administrator', permissions: ['center_all'] },
+    { name: 'Registrar', description: 'Authorized to register members and confirm attendance', permissions: ['create_members', 'edit_members', 'view_members', 'check_in_members', 'check_out_members', 'verify_attendance', 'view_events'] },
     { name: 'Member', description: 'Regular member', permissions: ['view_self'] }
   ];
 

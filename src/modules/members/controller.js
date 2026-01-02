@@ -11,6 +11,7 @@ import {
   searchMembers,
   getMemberByAuthId,
 } from './service.js';
+import { getEffectiveScope } from '../users/service.js';
 import { createMemberSchema, updateMemberSchema, paginationSchema } from '../../lib/validation.js';
 
 /**
@@ -53,12 +54,21 @@ export const listMembersHandler = async (req, res, next) => {
       });
     }
 
+    // Enforce Scope
+    const scope = await getEffectiveScope(req.userId);
+    let effectiveUnitId = req.query.unitId;
+
+    if (!scope.isGlobal) {
+      effectiveUnitId = scope.unitId;
+    }
+
     const members = await listMembers({
       ...value,
       search: req.query.search,
       state: req.query.state,
       isActive: req.query.isActive,
       gender: req.query.gender,
+      unitId: effectiveUnitId,
     });
 
     res.status(200).json(members);

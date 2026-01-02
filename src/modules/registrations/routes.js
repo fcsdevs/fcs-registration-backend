@@ -9,6 +9,8 @@ import {
   cancelRegistrationHandler,
   getEventRegistrationsHandler,
   getMemberRegistrationsHandler,
+  getRegistrarStatisticsHandler,
+  markAttendanceHandler,
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
@@ -26,11 +28,18 @@ router.get('/event/:eventId', authenticate, getEventRegistrationsHandler);
 // GET /api/registrations/member/:memberId - Get member registrations (MUST be before /:id)
 router.get('/member/:memberId', authenticate, getMemberRegistrationsHandler);
 
+// GET /api/registrations/stats - Get registrar statistics (MUST be before /:id)
+// Query params: eventId (required), centerId (optional)
+router.get('/stats', authenticate, getRegistrarStatisticsHandler);
+
 // GET /api/registrations/:id - Get registration details
 router.get('/:id', authenticate, getRegistrationHandler);
 
 // PUT /api/registrations/:id/status - Update registration status
 router.put('/:id/status', authenticate, updateRegistrationStatusHandler);
+
+// POST /api/registrations/:id/attendance - Mark attendance
+router.post('/:id/attendance', authenticate, markAttendanceHandler);
 
 // POST /api/registrations/:id/assign-center - Assign center to registration
 router.post('/:id/assign-center', authenticate, assignCenterHandler);

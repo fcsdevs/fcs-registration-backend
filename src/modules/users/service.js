@@ -3,21 +3,108 @@ import { NotFoundError, ValidationError, ForbiddenError } from '../../middleware
 
 const prisma = getPrismaClient();
 
-const getAllDescendantIds = async (unitId) => {
-    const children = await prisma.unit.findMany({
-        where: { parentId: unitId },
-        select: { id: true }
-    });
-    let ids = children.map(c => c.id);
-    for (const childId of ids) {
-        const subIds = await getAllDescendantIds(childId);
-        ids = [...ids, ...subIds];
+export const getAllDescendantIds = async (unitId) => {
+    const allIds = [];
+    let currentLevelIds = [unitId];
+
+    while (currentLevelIds.length > 0) {
+        // Fetch all children of current level units in one query
+        const children = await prisma.unit.findMany({
+            where: { parentId: { in: currentLevelIds } },
+            select: { id: true }
+        });
+
+        const childIds = children.map(c => c.id);
+        allIds.push(...childIds);
+        currentLevelIds = childIds;
     }
-    return ids;
+
+    return allIds;
+};
+
+export const getEffectiveScope = async (userId) => {
+    // 1. Get Member & Assignments
+    const member = await prisma.member.findFirst({
+        where: { authUserId: userId },
+        include: {
+            roleAssignments: {
+                include: {
+                    role: true,
+                    unit: { include: { unitType: true } }
+                }
+            }
+        }
+    });
+
+    if (!member || !member.roleAssignments || member.roleAssignments.length === 0) {
+        return { unitId: null, isGlobal: false, level: 'None' };
+    }
+
+    // 2. Determine Highest Scope
+    // Roles: Super Admin, National Admin -> Global
+    // Others -> Scoped to Unit
+    let highestScope = { unitId: null, isGlobal: false, level: 'None', unitName: '' };
+
+    // Simple hierarchy check: National > others
+    const isGlobal = member.roleAssignments.some(ra =>
+        ra.role.name.toLowerCase().includes('national') ||
+        ra.role.name.toLowerCase().includes('super') ||
+        (ra.unit && ra.unit.unitType && ra.unit.unitType.name === 'National')
+    );
+
+    if (isGlobal) {
+        return { unitId: null, isGlobal: true, level: 'National' };
+    }
+
+    // If not global, find the assignment.
+    // For now, assume single active role or take the first one. 
+    // In a multi-role scenario, we might need to merging scopes, but usually it's one admin scope.
+    // We prioritize the highest level unit if multiple exist.
+
+    // Hierarchy Levels (Approximation)
+    const levels = ['Regional', 'State', 'Zone', 'Area', 'Branch'];
+
+    for (const level of levels) {
+        const assignment = member.roleAssignments.find(ra =>
+            ra.unit?.unitType?.name === level || ra.role.name.includes(level)
+        );
+        if (assignment && assignment.unitId) {
+            return {
+                unitId: assignment.unitId,
+                isGlobal: false,
+                level,
+                unitName: assignment.unit.name
+            };
+        }
+    }
+
+    // Fallback: If no recognized level but has unit
+    const anyAssignment = member.roleAssignments.find(ra => ra.unitId);
+    if (anyAssignment) {
+        return {
+            unitId: anyAssignment.unitId,
+            isGlobal: false,
+            level: anyAssignment.unit.unitType?.name || 'Unknown',
+            unitName: anyAssignment.unit.name
+        };
+    }
+
+    return { unitId: null, isGlobal: false, level: 'None' };
+};
+
+export const checkScopeAccess = async (userId, targetUnitId) => {
+    if (!targetUnitId) return true;
+    const scope = await getEffectiveScope(userId);
+    if (scope.isGlobal) return true;
+    if (!scope.unitId) return false;
+
+    if (scope.unitId === targetUnitId) return true;
+
+    const descendants = await getAllDescendantIds(scope.unitId);
+    return descendants.includes(targetUnitId);
 };
 
 export const listUsers = async ({ role, unitId, search }) => {
-    console.log(`[DEBUG] listUsers: role=${role}, unitId=${unitId}, search=${search}`);
 
     // Define criteria for the Role Assignment itself
     const roleAssignmentWhere = {};
@@ -38,7 +125,6 @@ export const listUsers = async ({ role, unitId, search }) => {
         });
 
         const isNational = scopeUnit?.unitType?.name?.includes('National') || scopeUnit?.name?.includes('National');
-        console.log(`[DEBUG] Scope Unit: ${scopeUnit?.name}, IsNational: ${isNational}`);
 
         if (!isNational) {
             const unitIds = [unitId, ...(await getAllDescendantIds(unitId))];
@@ -103,10 +189,7 @@ export const listUsers = async ({ role, unitId, search }) => {
         }
     });
 
-    console.log(`[DEBUG] listUsers: Found ${users.length} users`);
-    if (users.length === 0) {
-        // console.log(`[DEBUG] listUsers WHERE clause:`, JSON.stringify(where, null, 2));
-    }
+
 
     // Map to frontend friendly format
     return users.map(u => {

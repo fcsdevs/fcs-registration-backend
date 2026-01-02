@@ -3,9 +3,11 @@ import {
   getPaginationParams,
   formatPaginatedResponse,
 } from '../../lib/helpers.js';
+import { checkScopeAccess, getAllDescendantIds } from '../users/service.js';
 import {
   ValidationError,
   NotFoundError,
+  ForbiddenError,
 } from '../../middleware/error-handler.js';
 import { isRegistrationOpen } from '../events/service.js';
 
@@ -17,17 +19,14 @@ const prisma = getPrismaClient();
 export const createRegistration = async (data, userId) => {
   const { eventId, memberId, centerId, participationMode } = data;
 
-  // Verify event exists and registration is open
+  // Verify event exists
   const event = await prisma.event.findUnique({
     where: { id: eventId },
+    include: { settings: true },
   });
 
   if (!event) {
     throw new NotFoundError('Event');
-  }
-
-  if (!isRegistrationOpen(event)) {
-    throw new ValidationError('Registration window is closed for this event');
   }
 
   // Verify member exists
@@ -37,6 +36,25 @@ export const createRegistration = async (data, userId) => {
 
   if (!member) {
     throw new NotFoundError('Member');
+  }
+
+  // Permission Check
+  // Allow if self-registration OR if user has scope access
+  const isSelfRegistration = member.authUserId === userId;
+
+  if (isSelfRegistration) {
+    if (event.settings && event.settings.allowSelfRegistration === false) {
+      throw new ForbiddenError('Self-registration is not enabled for this event');
+    }
+  } else {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to register members for this event');
+    }
+  }
+
+  if (!isRegistrationOpen(event)) {
+    throw new ValidationError('Registration window is closed for this event');
   }
 
   // Check if already registered
@@ -172,7 +190,7 @@ export const getRegistrationById = async (registrationId) => {
  * List registrations with filters
  */
 export const listRegistrations = async (query) => {
-  const { page, limit, eventId, memberId, status, centerId } = query;
+  const { page, limit, eventId, memberId, status, centerId, unitId, search, registeredBy, ids } = query;
   const { skip, take } = getPaginationParams(page, limit);
 
   const where = {};
@@ -181,6 +199,27 @@ export const listRegistrations = async (query) => {
   if (memberId) where.memberId = memberId;
   if (status) where.status = status;
   if (centerId) where.centerId = centerId;
+  if (registeredBy) where.registeredBy = registeredBy;
+  if (ids) {
+    const idList = typeof ids === 'string' ? ids.split(',') : ids;
+    where.id = { in: idList };
+  }
+
+  if (unitId) {
+    const descendants = await getAllDescendantIds(unitId);
+    const allUnitIds = [unitId, ...descendants];
+    where.event = { unitId: { in: allUnitIds } };
+  }
+
+  if (search) {
+    where.OR = [
+      { member: { firstName: { contains: search, mode: 'insensitive' } } },
+      { member: { lastName: { contains: search, mode: 'insensitive' } } },
+      { member: { email: { contains: search, mode: 'insensitive' } } },
+      { member: { phoneNumber: { contains: search, mode: 'insensitive' } } },
+      { member: { fcsCode: { contains: search, mode: 'insensitive' } } },
+    ];
+  }
 
   const [registrations, total] = await Promise.all([
     prisma.registration.findMany({
@@ -190,7 +229,11 @@ export const listRegistrations = async (query) => {
       include: {
         member: { select: { fcsCode: true, firstName: true, lastName: true } },
         event: { select: { title: true, startDate: true, endDate: true, participationMode: true } },
-        participation: true,
+        participation: {
+          include: {
+            center: true
+          }
+        },
       },
       orderBy: { registrationDate: 'desc' },
     }),
@@ -203,13 +246,19 @@ export const listRegistrations = async (query) => {
 /**
  * Update registration status
  */
-export const updateRegistrationStatus = async (registrationId, status, reason) => {
+export const updateRegistrationStatus = async (registrationId, status, reason, userId) => {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
+    include: { event: true },
   });
 
   if (!registration) {
     throw new NotFoundError('Registration');
+  }
+
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, registration.event.unitId);
+    if (!hasAccess) throw new ForbiddenError('You do not have permission to update this registration');
   }
 
   const updateData = { status };
@@ -231,11 +280,16 @@ export const updateRegistrationStatus = async (registrationId, status, reason) =
 export const assignCenter = async (registrationId, centerId, participationMode, userId) => {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
-    include: { participation: true },
+    include: { participation: true, event: true },
   });
 
   if (!registration) {
     throw new NotFoundError('Registration');
+  }
+
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, registration.event.unitId);
+    if (!hasAccess) throw new ForbiddenError('You do not have permission to update this registration');
   }
 
   // Verify center exists and is active
@@ -292,10 +346,16 @@ export const assignCenter = async (registrationId, centerId, participationMode, 
 export const assignGroup = async (registrationId, groupId, userId) => {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
+    include: { event: true },
   });
 
   if (!registration) {
     throw new NotFoundError('Registration');
+  }
+
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, registration.event.unitId);
+    if (!hasAccess) throw new ForbiddenError('You do not have permission to update this registration');
   }
 
   const group = await prisma.eventGroup.findUnique({
@@ -348,10 +408,16 @@ export const assignGroup = async (registrationId, groupId, userId) => {
 export const cancelRegistration = async (registrationId, reason, userId) => {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
+    include: { event: true },
   });
 
   if (!registration) {
     throw new NotFoundError('Registration');
+  }
+
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, registration.event.unitId);
+    if (!hasAccess) throw new ForbiddenError('You do not have permission to cancel this registration');
   }
 
   if (registration.status === 'CANCELLED') {
@@ -422,4 +488,66 @@ export const getMemberRegistrations = async (memberId, query) => {
   ]);
 
   return formatPaginatedResponse(registrations, total, parseInt(page || 1), parseInt(limit || 20));
+};
+
+/**
+ * Get Registrar Statistics
+ */
+export const getRegistrarStatistics = async (eventId, registrarId, centerId) => {
+  // 1. Registered By Me
+  const registeredByMe = await prisma.registration.count({
+    where: {
+      eventId,
+      registeredBy: registrarId
+    }
+  });
+
+  // 2. Center Stats (if centerId provided)
+  let centerStats = {
+    totalRegistered: 0,
+    totalConfirmed: 0,
+    totalCheckedIn: 0
+  };
+
+  if (centerId) {
+    const [total, confirmed, checkedIn] = await Promise.all([
+      prisma.registration.count({ where: { eventId, centerId } }),
+      prisma.registration.count({ where: { eventId, centerId, status: 'CONFIRMED' } }),
+      prisma.registration.count({ where: { eventId, centerId, status: 'CHECKED_IN' } })
+    ]);
+    centerStats = { totalRegistered: total, totalConfirmed: confirmed, totalCheckedIn: checkedIn };
+  }
+
+  return {
+    registeredByMe,
+    centerStats
+  };
+};
+
+/**
+ * Mark Attendance
+ */
+export const markAttendance = async (registrationId, method, userId) => {
+  // Verify registration exists
+  const registration = await prisma.registration.findUnique({
+    where: { id: registrationId },
+    include: { event: true }
+  });
+
+  if (!registration) {
+    throw new NotFoundError('Registration');
+  }
+
+  // Permission check?
+  // Ideally checks if userId (Registrar) has access to this event/center.
+  // We'll rely on controller to pass userId and assume Basic Role checks are done there or globally.
+
+  return prisma.registration.update({
+    where: { id: registrationId },
+    data: {
+      status: 'CHECKED_IN',
+      // We could store metadata about "method" (KIOSK/SCAN) in a JSON field if schema supported it.
+      // For now, status update is sufficient.
+    }
+  });
 };

@@ -31,16 +31,15 @@ const updateUnitSchema = Joi.object({
   leaderId: Joi.string(),
 });
 
+import { getEffectiveScope, getAllDescendantIds } from '../users/service.js';
+
 /**
  * POST /api/units
  */
 export const createUnitHandler = async (req, res, next) => {
   try {
-    console.log('[DEBUG] createUnitHandler called with body:', req.body);
-
     const { error, value } = createUnitSchema.validate(req.body);
     if (error) {
-      console.log('[DEBUG] Validation error:', error.details[0].message);
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
@@ -49,16 +48,13 @@ export const createUnitHandler = async (req, res, next) => {
       });
     }
 
-    console.log('[DEBUG] Calling createUnit with value:', value);
-    const unit = await createUnit(value);
-    console.log('[DEBUG] Unit created successfully:', unit.id);
+    const unit = await createUnit(value, req.userId);
 
     res.status(201).json({
       data: unit,
       message: 'Unit created successfully',
     });
   } catch (error) {
-    console.error('[DEBUG] Error in createUnitHandler:', error);
     next(error);
   }
 };
@@ -68,11 +64,8 @@ export const createUnitHandler = async (req, res, next) => {
  */
 export const listUnitsHandler = async (req, res, next) => {
   try {
-    console.log('[DEBUG] listUnitsHandler called with query:', req.query);
-
     const { error, value } = paginationSchema.validate(req.query);
     if (error) {
-      console.log('[DEBUG] Validation error:', error.details[0].message);
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
@@ -81,27 +74,32 @@ export const listUnitsHandler = async (req, res, next) => {
       });
     }
 
-    console.log('[DEBUG] Calling listUnits with params:', {
-      ...value,
-      type: req.query.type,
-      parentUnitId: req.query.parentUnitId,
-      search: req.query.search,
-    });
+    // Enforce Scope
+    const scope = await getEffectiveScope(req.userId);
+    let allowedIds = undefined;
+
+    if (!scope.isGlobal) {
+      if (!scope.unitId) {
+        // Admin with no unit? Should see nothing? Or just return empty.
+        allowedIds = [];
+      } else {
+        const descendants = await getAllDescendantIds(scope.unitId);
+        allowedIds = [scope.unitId, ...descendants];
+      }
+    }
 
     const result = await listUnits({
       ...value,
       type: req.query.type,
       parentUnitId: req.query.parentUnitId,
       search: req.query.search,
+      ids: allowedIds
     });
-
-    console.log('[DEBUG] listUnits returned:', JSON.stringify(result).substring(0, 200));
 
     // Service returns { data: [...], pagination: {...} }
     // Return it directly without wrapping
     res.status(200).json(result);
   } catch (error) {
-    console.error('[DEBUG] Error in listUnitsHandler:', error);
     next(error);
   }
 };
@@ -149,7 +147,7 @@ export const updateUnitHandler = async (req, res, next) => {
       });
     }
 
-    const unit = await updateUnit(req.params.unitId, value);
+    const unit = await updateUnit(req.params.unitId, value, req.userId);
     res.status(200).json({
       data: unit,
       message: 'Unit updated successfully',
@@ -252,7 +250,7 @@ export const getUnitStatsHandler = async (req, res, next) => {
  */
 export const deactivateUnitHandler = async (req, res, next) => {
   try {
-    const unit = await deactivateUnit(req.params.unitId);
+    const unit = await deactivateUnit(req.params.unitId, req.userId);
     res.status(200).json({
       data: unit,
       message: 'Unit deactivated',

@@ -149,6 +149,28 @@ export const listMembers = async (query) => {
     where.state = state;
   }
 
+  // Scope Enforcement Logic
+  if (query.unitId) {
+    const scopeUnit = await prisma.unit.findUnique({
+      where: { id: query.unitId },
+      include: { unitType: true }
+    });
+
+    if (scopeUnit && scopeUnit.unitType) {
+      const typeName = scopeUnit.unitType.name.toLowerCase();
+      // Match unit name to member fields
+      // This relies on matching names (e.g. Unit 'Lagos' => Member.state 'Lagos')
+      if (typeName.includes('state')) {
+        where.state = { contains: scopeUnit.name, mode: 'insensitive' };
+      } else if (typeName.includes('zone')) {
+        where.zone = { contains: scopeUnit.name, mode: 'insensitive' };
+      } else if (typeName.includes('branch')) {
+        where.branch = { contains: scopeUnit.name, mode: 'insensitive' };
+      }
+      // If National, no filter needed (unless we want to filter by country/region if added)
+    }
+  }
+
   const [members, total] = await Promise.all([
     prisma.member.findMany({
       where,

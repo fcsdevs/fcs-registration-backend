@@ -8,6 +8,8 @@ import {
   cancelRegistration,
   getRegistrationsByEvent,
   getMemberRegistrations,
+  getRegistrarStatistics,
+  markAttendance,
 } from './service.js';
 import { createRegistrationSchema, assignCenterSchema, paginationSchema } from '../../lib/validation.js';
 
@@ -36,6 +38,8 @@ export const createRegistrationHandler = async (req, res, next) => {
   }
 };
 
+import { getEffectiveScope } from '../users/service.js';
+
 /**
  * GET /api/registrations
  */
@@ -51,12 +55,28 @@ export const listRegistrationsHandler = async (req, res, next) => {
       });
     }
 
+    // Enforce Scope
+    const scope = await getEffectiveScope(req.userId);
+    let effectiveUnitId = req.query.unitId;
+    if (!scope.isGlobal) {
+      // If eventId is provided, we assume the user has access to the event (or is performing a check-in)
+      // and we do NOT restrict by unit scope. This allows Center Admins to check in members for National events.
+      // Otherwise, restrict to user's unit.
+      if (!req.query.eventId) {
+        effectiveUnitId = scope.unitId;
+      }
+    }
+
     const registrations = await listRegistrations({
       ...value,
       eventId: req.query.eventId,
       memberId: req.query.memberId,
       status: req.query.status,
       centerId: req.query.centerId,
+      registeredBy: req.query.registeredBy,
+      ids: req.query.ids,
+      unitId: effectiveUnitId,
+      search: req.query.search,
     });
 
     res.status(200).json(registrations);
@@ -95,7 +115,7 @@ export const updateRegistrationStatusHandler = async (req, res, next) => {
       });
     }
 
-    const registration = await updateRegistrationStatus(req.params.id, status, reason);
+    const registration = await updateRegistrationStatus(req.params.id, status, reason, req.userId);
     res.status(200).json({
       data: registration,
       message: 'Registration status updated',
@@ -228,6 +248,48 @@ export const getMemberRegistrationsHandler = async (req, res, next) => {
     });
 
     res.status(200).json(registrations);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/registrations/stats
+ */
+export const getRegistrarStatisticsHandler = async (req, res, next) => {
+  try {
+    const { eventId, centerId } = req.query;
+
+    if (!eventId) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'eventId is required'
+        }
+      });
+    }
+
+    const stats = await getRegistrarStatistics(eventId, req.userId, centerId);
+    res.status(200).json({
+      data: stats
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/registrations/:id/attendance
+ */
+export const markAttendanceHandler = async (req, res, next) => {
+  try {
+    const { method } = req.body; // KIOSK, CODE, SCAN
+
+    const registration = await markAttendance(req.params.id, method, req.userId);
+    res.status(200).json({
+      data: registration,
+      message: 'Attendance marked successfully'
+    });
   } catch (error) {
     next(error);
   }

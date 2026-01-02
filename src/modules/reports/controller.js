@@ -8,12 +8,24 @@ import {
 } from './service.js';
 import { paginationSchema } from '../../lib/validation.js';
 
+import { getEffectiveScope } from '../users/service.js';
+
 /**
  * GET /api/reports/dashboard
  */
 export const getDashboardHandler = async (req, res, next) => {
   try {
-    const summary = await getDashboardSummary(req.query);
+    const scope = await getEffectiveScope(req.userId);
+    let effectiveUnitId = req.query.unitId;
+
+    if (!scope.isGlobal) {
+      effectiveUnitId = scope.unitId;
+    }
+
+    const summary = await getDashboardSummary({
+      ...req.query,
+      unitId: effectiveUnitId
+    });
     res.status(200).json({
       data: summary,
     });
