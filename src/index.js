@@ -43,7 +43,11 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: [
+    'http://localhost:3000',
+    'https://fcs-registration-system.vercel.app',
+    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [])
+  ],
   credentials: true,
 }));
 
