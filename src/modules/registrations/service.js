@@ -39,7 +39,7 @@ export const createRegistration = async (data, userId) => {
   }
 
   // Permission Check
-  // Allow if self-registration OR if user has scope access
+  // Allow if self-registration, OR if third-party registration is enabled, OR if user has scope access
   const isSelfRegistration = member.authUserId === userId;
 
   if (isSelfRegistration) {
@@ -47,9 +47,14 @@ export const createRegistration = async (data, userId) => {
       throw new ForbiddenError('Self-registration is not enabled for this event');
     }
   } else {
-    const hasAccess = await checkScopeAccess(userId, event.unitId);
-    if (!hasAccess) {
-      throw new ForbiddenError('You do not have permission to register members for this event');
+    // Check if third-party registration is explicitly allowed
+    const allowThirdParty = event.settings?.allowThirdPartyRegistration ?? false;
+
+    if (!allowThirdParty) {
+      const hasAccess = await checkScopeAccess(userId, event.unitId);
+      if (!hasAccess) {
+        throw new ForbiddenError('You do not have permission to register members for this event');
+      }
     }
   }
 
