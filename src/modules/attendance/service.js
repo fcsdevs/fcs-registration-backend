@@ -88,6 +88,12 @@ export const checkIn = async (data, userId) => {
     });
   }
 
+  // Update registration status to CHECKED_IN
+  await prisma.registration.update({
+    where: { id: registrationId },
+    data: { status: 'CHECKED_IN' },
+  });
+
   return attendance;
 };
 
