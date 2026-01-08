@@ -38,25 +38,27 @@ export const createRegistration = async (data, userId) => {
     throw new NotFoundError('Member');
   }
 
-  // Permission Check
-  // Allow if self-registration, OR if third-party registration is enabled, OR if user has scope access
-  const isSelfRegistration = member.authUserId === userId;
-
-  if (isSelfRegistration) {
-    if (event.settings && event.settings.allowSelfRegistration === false) {
-      throw new ForbiddenError('Self-registration is not enabled for this event');
-    }
-  } else {
-    // Check if third-party registration is explicitly allowed
-    const allowThirdParty = event.settings?.allowThirdPartyRegistration ?? false;
-
-    if (!allowThirdParty) {
-      const hasAccess = await checkScopeAccess(userId, event.unitId);
-      if (!hasAccess) {
-        throw new ForbiddenError('You do not have permission to register members for this event');
+  // Permission Check - DISABLED AS REQUESTED
+  // We are allowing all registrations to proceed without scope/permission checks
+  /*
+    const isSelfRegistration = member.authUserId === userId;
+  
+    if (isSelfRegistration) {
+      if (event.settings && event.settings.allowSelfRegistration === false) {
+        throw new ForbiddenError('Self-registration is not enabled for this event');
+      }
+    } else {
+      // Check if third-party registration is explicitly allowed
+      const allowThirdParty = event.settings?.allowThirdPartyRegistration ?? false;
+  
+      if (!allowThirdParty) {
+        const hasAccess = await checkScopeAccess(userId, event.unitId);
+        if (!hasAccess) {
+          throw new ForbiddenError('You do not have permission to register members for this event');
+        }
       }
     }
-  }
+    */
 
   if (!isRegistrationOpen(event)) {
     throw new ValidationError('Registration window is closed for this event');
@@ -220,6 +222,7 @@ export const listRegistrations = async (query) => {
 
   if (search) {
     where.OR = [
+      { id: { equals: search } }, // Exact match for ID (CUID)
       { member: { firstName: { contains: search, mode: 'insensitive' } } },
       { member: { lastName: { contains: search, mode: 'insensitive' } } },
       { member: { email: { contains: search, mode: 'insensitive' } } },
@@ -486,8 +489,36 @@ export const getMemberRegistrations = async (memberId, query) => {
       skip,
       take,
       include: {
-        event: { select: { id: true, title: true } },
-        participation: true,
+        member: {
+          select: {
+            id: true,
+            fcsCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true
+          }
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            startDate: true,
+            endDate: true,
+            participationMode: true
+          }
+        },
+        participation: {
+          include: {
+            center: {
+              select: {
+                id: true,
+                centerName: true,
+                address: true
+              }
+            }
+          }
+        },
       },
       orderBy: { registrationDate: 'desc' },
     }),
