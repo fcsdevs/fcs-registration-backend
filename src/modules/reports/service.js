@@ -26,17 +26,26 @@ export const getEventAnalytics = async (eventId, query = {}) => {
   if (startDate) dateFilter.createdAt.gte = new Date(startDate);
   if (endDate) dateFilter.createdAt.lte = new Date(endDate);
 
-  // Get registrations by participation mode
-  const registrationsByMode = await prisma.registration.groupBy({
-    by: ['participationMode'],
+  // Get participation modes for all registrations of this event
+  const participations = await prisma.registrationParticipation.findMany({
     where: {
-      eventId,
-      ...dateFilter,
+      registration: {
+        eventId,
+        ...dateFilter
+      }
     },
-    _count: {
-      id: true,
-    },
+    select: { participationMode: true }
   });
+
+  const registrationsByModeMap = participations.reduce((acc, p) => {
+    acc[p.participationMode] = (acc[p.participationMode] || 0) + 1;
+    return acc;
+  }, {});
+
+  const registrationsByMode = Object.entries(registrationsByModeMap).map(([mode, count]) => ({
+    participationMode: mode,
+    _count: { id: count }
+  }));
 
   // Get attendance by participation mode
   const attendanceByMode = await prisma.attendanceRecord.groupBy({
@@ -104,7 +113,6 @@ export const getEventAnalytics = async (eventId, query = {}) => {
     attendanceByMode: attendanceByMode.map((a) => ({
       mode: a.participationMode,
       count: a._count.id,
-      // avgDuration: a._avg.durationSeconds, // Field does not exist
     })),
     centerStats,
   };
@@ -493,26 +501,16 @@ export const getDashboardSummary = async (query = {}) => {
         else if (typeName.includes('zone')) memberWhere.zone = { contains: scopeUnit.name, mode: 'insensitive' };
         else if (typeName.includes('branch')) memberWhere.branch = { contains: scopeUnit.name, mode: 'insensitive' };
 
-        // Event Scoping (Strict Ownership for KPIs)
-        // We can also include events from children? Yes (e.g. State Admin sees total of all branch events)
-        // Use the hierarchy helper from previously? We can't import it easily if not exported.
-        // We'll trust strict ownership + direct children for now or just restrict to THIS unit ID to keep it simple and accurate to "Branch Performance".
-        // Actually, a State Admin definitely wants to see aggregate of the State.
-        // Let's settle on: If filtering by Unit, we filter events by that Unit ID. (Strict ownership).
-        // Aggregating descendants is expensive without pre-calculated stats.
+        // Event Scoping (Strict Ownership)
         eventWhere.unitId = query.unitId;
       }
     }
   }
 
-  const totalMembers = await prisma.member.count({
-    where: memberWhere,
-  });
-
-  // Active events
-  const activeEvents = await prisma.event.count({
-    where: eventWhere,
-  });
+  const [totalMembers, activeEventsCount] = await Promise.all([
+    prisma.member.count({ where: memberWhere }),
+    prisma.event.count({ where: eventWhere }),
+  ]);
 
   // This month registrations
   const thisMonthStart = new Date();
@@ -523,7 +521,6 @@ export const getDashboardSummary = async (query = {}) => {
     where: {
       createdAt: { gte: thisMonthStart },
       ...(eventId && { eventId }),
-      // Scope registrations to events owned by this unit (if not National)
       ...(query.unitId && !isNational && { event: { unitId: query.unitId } })
     },
   });
@@ -537,11 +534,37 @@ export const getDashboardSummary = async (query = {}) => {
     },
   });
 
-  // Attendance rate this month
-  const attendanceRate =
-    thisMonthRegistrations > 0
-      ? (thisMonthAttendance / thisMonthRegistrations) * 100
-      : 0;
+  const attendanceRate = thisMonthRegistrations > 0 ? (thisMonthAttendance / thisMonthRegistrations) * 100 : 0;
+
+  // Get the most recent event for detailed summary
+  const recentEvent = await prisma.event.findFirst({
+    where: eventWhere,
+    orderBy: { startDate: 'desc' },
+    include: {
+      _count: { select: { registrations: true, attendances: true } },
+      centers: {
+        include: {
+          _count: { select: { registrations: true, attendances: true } }
+        }
+      }
+    }
+  });
+
+  // Check-in methods for the recent event
+  let checkInMethods = { qr: 0, sac: 0, manual: 0 };
+  if (recentEvent) {
+    const records = await prisma.attendanceRecord.groupBy({
+      by: ['checkInMethod'],
+      where: { eventId: recentEvent.id },
+      _count: { id: true }
+    });
+    records.forEach(r => {
+      const method = r.checkInMethod?.toUpperCase();
+      if (method === 'QR') checkInMethods.qr = r._count.id;
+      else if (method === 'SAC') checkInMethods.sac = r._count.id;
+      else checkInMethods.manual += r._count.id;
+    });
+  }
 
   // Top events by registration
   const topEvents = await prisma.event.findMany({
@@ -557,18 +580,31 @@ export const getDashboardSummary = async (query = {}) => {
     take: 5,
   });
 
-
   return {
     overview: {
       totalMembers,
-      activeEvents,
+      activeEvents: activeEventsCount,
       thisMonthRegistrations,
       thisMonthAttendance,
       attendanceRate: parseFloat(attendanceRate.toFixed(2)),
     },
+    recentSession: recentEvent ? {
+      title: recentEvent.title,
+      totalRegistered: recentEvent._count.registrations,
+      totalAttended: recentEvent._count.attendances,
+      attendanceRate: recentEvent._count.registrations > 0
+        ? Math.round((recentEvent._count.attendances / recentEvent._count.registrations) * 100)
+        : 0,
+      centers: recentEvent.centers.map(c => ({
+        name: c.centerName,
+        attended: c._count.attendances,
+        registered: c._count.registrations
+      })),
+      checkInMethods
+    } : null,
     topEvents: topEvents.map((e) => ({
       id: e.id,
-      name: e.title, // Also fixed: Event model has 'title', not 'name' in schema?
+      title: e.title,
       registrations: e._count.registrations,
       attendance: e._count.attendances,
     })),

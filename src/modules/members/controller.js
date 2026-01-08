@@ -13,6 +13,7 @@ import {
 } from './service.js';
 import { getEffectiveScope } from '../users/service.js';
 import { createMemberSchema, updateMemberSchema, paginationSchema } from '../../lib/validation.js';
+import prisma from '../../lib/prisma.js';
 
 /**
  * POST /api/members
@@ -230,22 +231,84 @@ export const deactivateMemberHandler = async (req, res, next) => {
 };
 
 /**
- * GET /api/members/search?q=query
+ * GET /api/members/search
+ * Supports two modes:
+ * 1. General search: ?q=query (searches name and FCS code)
+ * 2. Extensive search: ?lastName=X&email=Y&phoneNumber=Z (requires at least 2 params)
  */
 export const searchMembersHandler = async (req, res, next) => {
   try {
-    const { q } = req.query;
+    const { q, lastName, email, phoneNumber } = req.query;
 
-    if (!q || q.length < 2) {
+    // Mode 1: General search with 'q' parameter
+    if (q) {
+      if (q.length < 2) {
+        return res.status(400).json({
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Search query must be at least 2 characters',
+          },
+        });
+      }
+
+      const members = await searchMembers(q);
+      return res.status(200).json({
+        data: members,
+      });
+    }
+
+    // Mode 2: Extensive search with specific fields
+    const searchFields = { lastName, email, phoneNumber };
+    const filledFields = Object.values(searchFields).filter(val => val && val.trim() !== '');
+
+    if (filledFields.length < 2) {
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'Search query must be at least 2 characters',
+          message: 'Please provide at least 2 search criteria (lastName, email, or phoneNumber)',
         },
       });
     }
 
-    const members = await searchMembers(q);
+    // Build search conditions
+    const whereConditions = {
+      isActive: true,
+      AND: [],
+    };
+
+    if (lastName && lastName.trim()) {
+      whereConditions.AND.push({
+        lastName: { contains: lastName.trim(), mode: 'insensitive' }
+      });
+    }
+
+    if (email && email.trim()) {
+      whereConditions.AND.push({
+        email: { contains: email.trim(), mode: 'insensitive' }
+      });
+    }
+
+    if (phoneNumber && phoneNumber.trim()) {
+      whereConditions.AND.push({
+        phoneNumber: { contains: phoneNumber.trim() }
+      });
+    }
+
+    const members = await prisma.member.findMany({
+      where: whereConditions,
+      select: {
+        id: true,
+        fcsCode: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        email: true,
+        gender: true,
+        dateOfBirth: true,
+      },
+      take: 20,
+    });
+
     res.status(200).json({
       data: members,
     });

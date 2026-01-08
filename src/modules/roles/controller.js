@@ -176,7 +176,8 @@ export const assignRoleHandler = async (req, res, next) => {
     const assignment = await assignRoleToUser(
       req.params.userId,
       req.params.roleId,
-      value.unitId
+      value.unitId,
+      req.userId // Added assignedBy
     );
 
     res.status(201).json({

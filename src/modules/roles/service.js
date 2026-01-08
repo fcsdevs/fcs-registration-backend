@@ -124,9 +124,9 @@ export const updateRole = async (roleId, data) => {
 /**
  * Assign role to user
  */
-export const assignRoleToUser = async (userId, roleId, unitId = null) => {
+export const assignRoleToUser = async (userId, roleId, unitId = null, assignedByUserId) => {
   const [user, role] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId } }),
+    prisma.authUser.findUnique({ where: { id: userId } }),
     prisma.role.findUnique({ where: { id: roleId } }),
   ]);
 
@@ -135,26 +135,37 @@ export const assignRoleToUser = async (userId, roleId, unitId = null) => {
 
   // If role has unitScope, verify unit exists
   if (role.unitScope && unitId) {
-    const unit = await prisma.organizationalUnit.findUnique({
+    const unit = await prisma.unit.findUnique({
       where: { id: unitId },
     });
 
     if (!unit) throw new NotFoundError('Unit not found');
   }
 
+  // Find user's member profile since roles are assigned to members in the schema
+  const member = await prisma.member.findFirst({
+    where: { authUserId: userId },
+  });
+
+  if (!member) {
+    throw new NotFoundError('User does not have a linked member profile');
+  }
+
   const assignment = await prisma.roleAssignment.create({
     data: {
-      userId,
+      memberId: member.id,
       roleId,
       unitId,
+      assignedBy: assignedByUserId,
       assignedAt: new Date(),
     },
     include: {
       role: true,
-      user: {
+      member: {
         select: {
           id: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           email: true,
         },
       },
@@ -169,7 +180,10 @@ export const assignRoleToUser = async (userId, roleId, unitId = null) => {
  */
 export const removeRoleFromUser = async (userId, roleId) => {
   const assignment = await prisma.roleAssignment.findFirst({
-    where: { userId, roleId },
+    where: {
+      member: { authUserId: userId },
+      roleId
+    },
   });
 
   if (!assignment) {
@@ -187,8 +201,11 @@ export const removeRoleFromUser = async (userId, roleId) => {
  * Get user roles
  */
 export const getUserRoles = async (userId) => {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.authUser.findUnique({
     where: { id: userId },
+    include: {
+      members: { take: 1 }
+    }
   });
 
   if (!user) {
@@ -196,7 +213,7 @@ export const getUserRoles = async (userId) => {
   }
 
   const assignments = await prisma.roleAssignment.findMany({
-    where: { userId },
+    where: { member: { authUserId: userId } },
     include: {
       role: true,
       unit: {
@@ -209,8 +226,8 @@ export const getUserRoles = async (userId) => {
   return {
     user: {
       id: user.id,
-      name: user.name,
-      email: user.email,
+      name: user.members[0] ? `${user.members[0].firstName} ${user.members[0].lastName}` : 'No Name',
+      email: user.email || user.phoneNumber,
     },
     roles: assignments,
   };
@@ -235,10 +252,11 @@ export const getRoleUsers = async (roleId, query = {}) => {
     prisma.roleAssignment.findMany({
       where: { roleId },
       include: {
-        user: {
+        member: {
           select: {
             id: true,
-            name: true,
+            firstName: true,
+            lastName: true,
             email: true,
           },
         },
@@ -273,7 +291,7 @@ export const getRoleUsers = async (roleId, query = {}) => {
  */
 export const checkUserPermission = async (userId, permission) => {
   const assignments = await prisma.roleAssignment.findMany({
-    where: { userId },
+    where: { member: { authUserId: userId } },
     include: { role: true },
   });
 
@@ -291,7 +309,7 @@ export const checkUserPermission = async (userId, permission) => {
  */
 export const getUserPermissions = async (userId) => {
   const assignments = await prisma.roleAssignment.findMany({
-    where: { userId },
+    where: { member: { authUserId: userId } },
     include: { role: true },
   });
 
