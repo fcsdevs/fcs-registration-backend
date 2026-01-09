@@ -19,14 +19,24 @@ export const loginSchema = Joi.object({
 });
 
 export const sendOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required(),
-  purpose: Joi.string().valid('EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET').required(),
-});
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+  email: Joi.string().email().optional(),
+  purpose: Joi.string().valid('EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'REGISTRATION').required(),
+}).or('phoneNumber', 'email');
 
 export const verifyOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+  email: Joi.string().email().optional(),
   code: Joi.string().length(6).required(),
-});
+}).or('phoneNumber', 'email');
+
+export const resetPasswordSchema = Joi.object({
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+  email: Joi.string().email().optional(),
+  code: Joi.string().length(6).required(),
+  newPassword: Joi.string().min(8).required(),
+  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required(),
+}).or('phoneNumber', 'email');
 
 export const checkExistenceSchema = Joi.object({
   email: Joi.string().email().optional(),

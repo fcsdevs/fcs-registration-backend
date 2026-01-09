@@ -50,3 +50,8 @@ temp/
 # OS
 Thumbs.db
 .DS_Store
+
+# Database Backups and Seeds
+prisma/backup.js
+prisma/backup.json
+prisma/seed.js
