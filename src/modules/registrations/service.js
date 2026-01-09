@@ -528,9 +528,6 @@ export const getMemberRegistrations = async (memberId, query) => {
   return formatPaginatedResponse(registrations, total, parseInt(page || 1), parseInt(limit || 20));
 };
 
-/**
- * Get Registrar Statistics
- */
 export const getRegistrarStatistics = async (eventId, registrarId, centerId) => {
   // 1. Registered By Me
   const registeredByMe = await prisma.registration.count({
@@ -563,6 +560,38 @@ export const getRegistrarStatistics = async (eventId, registrarId, centerId) => 
 };
 
 /**
+ * Get Global Registration Statistics Summary
+ */
+export const getGlobalRegistrationsStats = async (query = {}) => {
+  const { eventId, unitId } = query;
+  const where = {};
+
+  if (eventId) {
+    where.eventId = eventId;
+  }
+
+  if (unitId) {
+    const descendants = await getAllDescendantIds(unitId);
+    const allUnitIds = [unitId, ...descendants];
+    where.event = { unitId: { in: allUnitIds } };
+  }
+
+  const [total, confirmed, pending, checkedIn] = await Promise.all([
+    prisma.registration.count({ where }),
+    prisma.registration.count({ where: { ...where, status: 'CONFIRMED' } }),
+    prisma.registration.count({ where: { ...where, status: 'PENDING' } }),
+    prisma.registration.count({ where: { ...where, status: 'CHECKED_IN' } }),
+  ]);
+
+  return {
+    total,
+    confirmed,
+    pending,
+    checkedIn
+  };
+};
+
+/**
  * Mark Attendance
  */
 export const markAttendance = async (registrationId, method, userId) => {
@@ -580,12 +609,29 @@ export const markAttendance = async (registrationId, method, userId) => {
   // Ideally checks if userId (Registrar) has access to this event/center.
   // We'll rely on controller to pass userId and assume Basic Role checks are done there or globally.
 
+  // Check if attendance already exists
+  const existingAttendance = await prisma.attendanceRecord.findUnique({
+    where: { registrationId }
+  });
+
+  if (!existingAttendance) {
+    // Create attendance record to sync with reports
+    await prisma.attendanceRecord.create({
+      data: {
+        eventId: registration.eventId,
+        registrationId: registration.id,
+        memberId: registration.memberId,
+        participationMode: registration.participation?.participationMode || 'ONSITE', // Fallback
+        checkInMethod: method || 'MANUAL',
+        checkInTime: new Date(),
+      }
+    });
+  }
+
   return prisma.registration.update({
     where: { id: registrationId },
     data: {
       status: 'CHECKED_IN',
-      // We could store metadata about "method" (KIOSK/SCAN) in a JSON field if schema supported it.
-      // For now, status update is sufficient.
     }
   });
 };

@@ -10,6 +10,7 @@ import {
   getEventRegistrationsHandler,
   getMemberRegistrationsHandler,
   getRegistrarStatisticsHandler,
+  getGlobalRegistrationsStatsHandler,
   markAttendanceHandler,
   downloadTagHandler
 } from './controller.js';
@@ -32,6 +33,9 @@ router.get('/member/:memberId', authenticate, getMemberRegistrationsHandler);
 // GET /api/registrations/stats - Get registrar statistics (MUST be before /:id)
 // Query params: eventId (required), centerId (optional)
 router.get('/stats', authenticate, getRegistrarStatisticsHandler);
+
+// GET /api/registrations/stats/summary - Get global registration statistics (MUST be before /:id)
+router.get('/stats/summary', authenticate, getGlobalRegistrationsStatsHandler);
 
 // GET /api/registrations/:id - Get registration details
 // GET /api/registrations/:id - Get registration details

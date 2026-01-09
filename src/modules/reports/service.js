@@ -481,7 +481,13 @@ const convertReportToCSV = (report) => {
 export const getDashboardSummary = async (query = {}) => {
   const { eventId, centerId } = query;
 
-  // Total members
+  // Time boundaries for trends
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+  // Scoping logic
   const memberWhere = { isActive: true };
   let eventWhere = { isPublished: true };
   let isNational = false;
@@ -496,50 +502,62 @@ export const getDashboardSummary = async (query = {}) => {
       if (typeName.includes('national')) {
         isNational = true;
       } else {
-        // Member Scoping
         if (typeName.includes('state')) memberWhere.state = { contains: scopeUnit.name, mode: 'insensitive' };
         else if (typeName.includes('zone')) memberWhere.zone = { contains: scopeUnit.name, mode: 'insensitive' };
         else if (typeName.includes('branch')) memberWhere.branch = { contains: scopeUnit.name, mode: 'insensitive' };
-
-        // Event Scoping (Strict Ownership)
         eventWhere.unitId = query.unitId;
       }
     }
   }
 
-  const [totalMembers, activeEventsCount] = await Promise.all([
+  // 1. Core Metrics & Trends
+  const [
+    totalMembers,
+    lastMonthMembers,
+    activeEventsCount,
+    lastMonthEventsCount,
+    thisMonthRegistrations,
+    lastMonthRegistrations
+  ] = await Promise.all([
     prisma.member.count({ where: memberWhere }),
+    prisma.member.count({ where: { ...memberWhere, createdAt: { lt: thisMonthStart } } }),
     prisma.event.count({ where: eventWhere }),
+    prisma.event.count({ where: { ...eventWhere, createdAt: { gte: lastMonthStart, lte: lastMonthEnd } } }),
+    prisma.registration.count({
+      where: {
+        createdAt: { gte: thisMonthStart },
+        ...(query.unitId && !isNational && { event: { unitId: query.unitId } })
+      }
+    }),
+    prisma.registration.count({
+      where: {
+        createdAt: { gte: lastMonthStart, lte: lastMonthEnd },
+        ...(query.unitId && !isNational && { event: { unitId: query.unitId } })
+      }
+    }),
   ]);
 
-  // This month registrations
-  const thisMonthStart = new Date();
-  thisMonthStart.setDate(1);
-  thisMonthStart.setHours(0, 0, 0, 0);
+  // Calculations for Trends
+  const memberGrowth = lastMonthMembers > 0 ? ((totalMembers - lastMonthMembers) / lastMonthMembers) * 100 : 0;
+  const eventGrowth = lastMonthEventsCount > 0 ? ((activeEventsCount - lastMonthEventsCount) / lastMonthEventsCount) * 100 : 0;
+  const registrationGrowth = lastMonthRegistrations > 0 ? ((thisMonthRegistrations - lastMonthRegistrations) / lastMonthRegistrations) * 100 : 0;
 
-  const thisMonthRegistrations = await prisma.registration.count({
+  // Check-ins today
+  const todayStart = new Date(now.setHours(0, 0, 0, 0));
+  const checkedInToday = await prisma.attendanceRecord.count({
     where: {
-      createdAt: { gte: thisMonthStart },
-      ...(eventId && { eventId }),
+      checkInTime: { gte: todayStart },
       ...(query.unitId && !isNational && { event: { unitId: query.unitId } })
-    },
+    }
   });
 
-  // This month attendance
-  const thisMonthAttendance = await prisma.attendanceRecord.count({
-    where: {
-      checkInTime: { gte: thisMonthStart },
-      ...(centerId && { centerId }),
-      ...(query.unitId && !isNational && { event: { unitId: query.unitId } })
-    },
-  });
-
-  const attendanceRate = thisMonthRegistrations > 0 ? (thisMonthAttendance / thisMonthRegistrations) * 100 : 0;
-
-  // Get the most recent event for detailed summary
+  // 2. Recent/Active Event Summary (Intelligent Selection)
+  // Logic: Find an event that is currently happening, or the most recently finished one
   const recentEvent = await prisma.event.findFirst({
     where: eventWhere,
-    orderBy: { startDate: 'desc' },
+    orderBy: [
+      { startDate: 'desc' }
+    ],
     include: {
       _count: { select: { registrations: true, attendances: true } },
       centers: {
@@ -550,7 +568,6 @@ export const getDashboardSummary = async (query = {}) => {
     }
   });
 
-  // Check-in methods for the recent event
   let checkInMethods = { qr: 0, sac: 0, manual: 0 };
   if (recentEvent) {
     const records = await prisma.attendanceRecord.groupBy({
@@ -560,41 +577,31 @@ export const getDashboardSummary = async (query = {}) => {
     });
     records.forEach(r => {
       const method = r.checkInMethod?.toUpperCase();
-      if (method === 'QR') checkInMethods.qr = r._count.id;
-      else if (method === 'SAC') checkInMethods.sac = r._count.id;
+      if (method === 'QR' || method === 'SCAN') checkInMethods.qr += r._count.id;
+      else if (method === 'SAC' || method === 'CODE') checkInMethods.sac += r._count.id;
       else checkInMethods.manual += r._count.id;
     });
   }
 
-  // Top events by registration
-  const topEvents = await prisma.event.findMany({
-    where: eventWhere,
-    include: {
-      _count: {
-        select: { registrations: true, attendances: true },
-      },
-    },
-    orderBy: {
-      registrations: { _count: 'desc' },
-    },
-    take: 5,
-  });
-
   return {
     overview: {
       totalMembers,
+      memberGrowth: parseFloat(memberGrowth.toFixed(1)),
       activeEvents: activeEventsCount,
+      eventGrowth: parseFloat(eventGrowth.toFixed(1)),
       thisMonthRegistrations,
-      thisMonthAttendance,
-      attendanceRate: parseFloat(attendanceRate.toFixed(2)),
+      registrationGrowth: parseFloat(registrationGrowth.toFixed(1)),
+      checkedInToday,
     },
     recentSession: recentEvent ? {
+      id: recentEvent.id,
       title: recentEvent.title,
       totalRegistered: recentEvent._count.registrations,
       totalAttended: recentEvent._count.attendances,
       attendanceRate: recentEvent._count.registrations > 0
         ? Math.round((recentEvent._count.attendances / recentEvent._count.registrations) * 100)
         : 0,
+      capacity: recentEvent.capacity || 0,
       centers: recentEvent.centers.map(c => ({
         name: c.centerName,
         attended: c._count.attendances,
@@ -602,11 +609,5 @@ export const getDashboardSummary = async (query = {}) => {
       })),
       checkInMethods
     } : null,
-    topEvents: topEvents.map((e) => ({
-      id: e.id,
-      title: e.title,
-      registrations: e._count.registrations,
-      attendance: e._count.attendances,
-    })),
   };
 };

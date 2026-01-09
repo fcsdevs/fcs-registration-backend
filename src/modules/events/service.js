@@ -200,6 +200,12 @@ export const listEvents = async (query) => {
       take,
       include: {
         unit: { select: { name: true } },
+        _count: {
+          select: {
+            registrations: true,
+            attendances: true,
+          },
+        },
       },
       orderBy: { startDate: 'desc' },
     }),

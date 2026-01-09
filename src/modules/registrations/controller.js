@@ -9,6 +9,7 @@ import {
   getRegistrationsByEvent,
   getMemberRegistrations,
   getRegistrarStatistics,
+  getGlobalRegistrationsStats,
   markAttendance,
 } from './service.js';
 import { createRegistrationSchema, assignCenterSchema, paginationSchema } from '../../lib/validation.js';
@@ -270,6 +271,35 @@ export const getRegistrarStatisticsHandler = async (req, res, next) => {
     }
 
     const stats = await getRegistrarStatistics(eventId, req.userId, centerId);
+    res.status(200).json({
+      data: stats
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/registrations/stats/summary
+ */
+export const getGlobalRegistrationsStatsHandler = async (req, res, next) => {
+  try {
+    const { eventId } = req.query;
+
+    // Enforce Scope
+    const scope = await getEffectiveScope(req.userId);
+    let effectiveUnitId = req.query.unitId;
+    if (!scope.isGlobal) {
+      if (!eventId) {
+        effectiveUnitId = scope.unitId;
+      }
+    }
+
+    const stats = await getGlobalRegistrationsStats({
+      eventId,
+      unitId: effectiveUnitId
+    });
+
     res.status(200).json({
       data: stats
     });
