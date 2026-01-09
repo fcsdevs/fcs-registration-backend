@@ -578,9 +578,25 @@ export const getGlobalRegistrationsStats = async (query = {}) => {
 
   const [total, confirmed, pending, checkedIn] = await Promise.all([
     prisma.registration.count({ where }),
-    prisma.registration.count({ where: { ...where, status: 'CONFIRMED' } }),
+    // Confirmed are those with CONFIRMED status who HAVEN'T checked in yet
+    prisma.registration.count({
+      where: {
+        ...where,
+        status: 'CONFIRMED',
+        attendance: { is: null }
+      }
+    }),
     prisma.registration.count({ where: { ...where, status: 'PENDING' } }),
-    prisma.registration.count({ where: { ...where, status: 'CHECKED_IN' } }),
+    // Checked in are those with either the status or an actual attendance record
+    prisma.registration.count({
+      where: {
+        ...where,
+        OR: [
+          { status: 'CHECKED_IN' },
+          { attendance: { isNot: null } }
+        ]
+      }
+    }),
   ]);
 
   return {
