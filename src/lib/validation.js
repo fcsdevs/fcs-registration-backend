@@ -43,6 +43,12 @@ export const checkExistenceSchema = Joi.object({
   phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
 }).or('email', 'phoneNumber');
 
+export const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: Joi.string().min(8).required(),
+  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required(),
+});
+
 // ============================================================
 // MEMBER VALIDATION SCHEMAS
 // ============================================================

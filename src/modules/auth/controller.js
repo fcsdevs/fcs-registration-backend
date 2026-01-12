@@ -7,8 +7,19 @@ import {
   logoutUser,
   getUserById,
   checkUserExistence,
+  requestPasswordReset,
+  resetPassword as resetPasswordService,
+  changePassword
 } from './service.js';
-import { registerSchema, loginSchema, sendOTPSchema, verifyOTPSchema, checkExistenceSchema } from '../../lib/validation.js';
+import {
+  registerSchema,
+  loginSchema,
+  sendOTPSchema,
+  verifyOTPSchema,
+  checkExistenceSchema,
+  resetPasswordSchema,
+  changePasswordSchema
+} from '../../lib/validation.js';
 
 /**
  * POST /api/auth/register
@@ -88,14 +99,13 @@ export const login = async (req, res, next) => {
   }
 };
 
-/**
- * POST /api/auth/send-otp
- */
 export const sendOTPHandler = async (req, res, next) => {
   try {
+    console.log('sendOTPHandler received body:', req.body);
     // Validate request
     const { error, value } = sendOTPSchema.validate(req.body);
     if (error) {
+      console.log('Validation error:', error.details[0].message);
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
@@ -104,12 +114,15 @@ export const sendOTPHandler = async (req, res, next) => {
       });
     }
 
-    const result = await sendOTP(value.phoneNumber, value.purpose);
+    console.log('Calling sendOTP service with:', value);
+    const result = await sendOTP(value);
+    console.log('sendOTP service returned:', result); // Added detailed logging
     res.status(200).json({
       data: result,
       message: 'OTP sent successfully',
     });
   } catch (error) {
+    console.error('Error in sendOTPHandler:', error);
     next(error);
   }
 };
@@ -130,7 +143,7 @@ export const verifyOTPHandler = async (req, res, next) => {
       });
     }
 
-    const result = await verifyOTP(value.phoneNumber, value.code);
+    const result = await verifyOTP(value);
     res.status(200).json({
       data: result,
       message: 'OTP verified successfully',
@@ -190,6 +203,79 @@ export const getCurrentUser = async (req, res, next) => {
     const user = await getUserById(req.userId);
     res.status(200).json({
       data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/auth/forgot-password
+ */
+export const forgotPasswordHandler = async (req, res, next) => {
+  try {
+    const { identifier } = req.body;
+    if (!identifier) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'Identifier is required' }
+      });
+    }
+
+    const result = await requestPasswordReset(identifier);
+    res.status(200).json({
+      data: result,
+      message: 'OTP sent successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/auth/reset-password
+ */
+export const resetPasswordHandler = async (req, res, next) => {
+  try {
+    // Frontend sends { identifier, otp, password } which maps to our service args
+    const { identifier, otp, password } = req.body;
+
+    if (!identifier || !otp || !password) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'Missing required fields' }
+      });
+    }
+
+    const result = await resetPasswordService(identifier, otp, password);
+    res.status(200).json({
+      data: result,
+      message: 'Password reset successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/auth/change-password
+ */
+export const changePasswordHandler = async (req, res, next) => {
+  try {
+    const { error, value } = changePasswordSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: error.details[0].message,
+        },
+      });
+    }
+
+    const { currentPassword, newPassword } = value;
+    const result = await changePassword(req.userId, currentPassword, newPassword);
+
+    res.status(200).json({
+      data: result,
+      message: 'Password changed successfully',
     });
   } catch (error) {
     next(error);
