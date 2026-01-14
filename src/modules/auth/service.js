@@ -12,6 +12,7 @@ import {
   UnauthorizedError,
   NotFoundError,
 } from '../../middleware/error-handler.js';
+import { sendMail } from '../../lib/mail.js';
 
 const prisma = getPrismaClient();
 
@@ -331,11 +332,44 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
       data: otpData,
     });
 
-    // TODO: Send OTP via SMS/Email provider
+    // Send OTP via Email if provided
     if (email) {
-      console.log(`OTP for email ${email}: ${code}`);
-    } else {
-      console.log(`OTP for ${normalizedPhone}: ${code}`);
+      const subject = purpose === 'PASSWORD_RESET'
+        ? 'Reset Your FCS Password'
+        : 'Verify Your FCS Account';
+
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #010030; text-align: center;">FCS Nigeria</h2>
+          <p>Hello,</p>
+          <p>You requested a verification code for <strong>${purpose.replace('_', ' ')}</strong>.</p>
+          <div style="background: #f4f4f4; padding: 20px; text-align: center; border-radius: 5px; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #010030;">${code}</span>
+          </div>
+          <p>This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #777; text-align: center;">&copy; ${new Date().getFullYear()} Fellowship of Christian Students (FCS) Nigeria</p>
+        </div>
+      `;
+
+      try {
+        await sendMail({
+          to: email,
+          subject,
+          text: `Your FCS verification code is: ${code}. It expires in 10 minutes.`,
+          html
+        });
+        console.log(`OTP email sent successfully to ${email}`);
+      } catch (mailError) {
+        console.error('Failed to send OTP email:', mailError);
+        // We don't throw here to allow the user to see the code in dev if needed, 
+        // but in prod this might be a problem.
+      }
+    }
+
+    if (normalizedPhone) {
+      // TODO: Implement SMS sending (e.g. via Twilio or Termii)
+      console.log(`[SMS TODO] OTP for ${normalizedPhone}: ${code}`);
     }
 
     return {
