@@ -12,7 +12,7 @@ const prisma = getPrismaClient();
  * Create event group
  */
 export const createGroup = async (data, userId) => {
-  const { eventId, name, type, description, capacity } = data;
+  const { eventId, name, type, description } = data;
 
   // Verify event exists
   const event = await prisma.event.findUnique({
@@ -37,7 +37,6 @@ export const createGroup = async (data, userId) => {
       name,
       type, // BIBLE_STUDY | WORKSHOP | BREAKOUT
       description,
-      capacity,
     },
   });
 
@@ -133,15 +132,13 @@ export const updateGroup = async (groupId, data, userId) => {
     }
   }
 
-  const { name, description, capacity } = data;
+  const { name, description } = data;
 
   const updated = await prisma.eventGroup.update({
     where: { id: groupId },
     data: {
       ...(name && { name }),
       ...(description && { description }),
-      ...(capacity && { capacity }),
-      ...(capacity && { capacity }),
     },
     include: {
       _count: {
@@ -184,10 +181,10 @@ export const assignMemberToGroup = async (groupId, memberId, userId) => {
     }
   }
 
-  // Check capacity
-  if (group.capacity && group._count.assignments >= group.capacity) {
-    throw new AppError('Group is at full capacity', 400);
-  }
+  // Check capacity - Removed
+  // if (group.capacity && group._count.assignments >= group.capacity) {
+  //   throw new AppError('Group is at full capacity', 400);
+  // }
 
   // Find registration for this member in this event
   const registration = await prisma.registration.findFirst({
@@ -312,9 +309,7 @@ export const getGroupStatistics = async (groupId) => {
   if (!group) throw new NotFoundError('Group not found');
 
   return {
-    capacity: group.capacity,
     memberCount: group._count.assignments,
-    occupancyRate: group.capacity ? (group._count.assignments / group.capacity) * 100 : 0
   };
 };
 

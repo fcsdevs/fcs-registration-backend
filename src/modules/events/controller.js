@@ -9,11 +9,30 @@ import {
 } from './service.js';
 import { createEventSchema, updateEventSchema, paginationSchema } from '../../lib/validation.js';
 
+import { cloudinaryUploadImage } from '../../lib/cloudinary.js';
+import fs from 'fs';
+
 /**
  * POST /api/events - Create event
  */
 export const createEventHandler = async (req, res, next) => {
   try {
+    // If image file is uploaded, upload to cloudinary first
+    if (req.file) {
+      try {
+        const uploadResult = await cloudinaryUploadImage(req.file.path);
+        req.body.imageUrl = uploadResult.url;
+
+        // Clean up resized file from local storage
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (uploadError) {
+        console.error('Image upload failed:', uploadError);
+        // We continue even if image fails, or we could return error
+      }
+    }
+
     const { error, value } = createEventSchema.validate(req.body);
     if (error) {
       return res.status(400).json({
@@ -97,6 +116,21 @@ export const getEventHandler = async (req, res, next) => {
  */
 export const updateEventHandler = async (req, res, next) => {
   try {
+    // If image file is uploaded, upload to cloudinary first
+    if (req.file) {
+      try {
+        const uploadResult = await cloudinaryUploadImage(req.file.path);
+        req.body.imageUrl = uploadResult.url;
+
+        // Clean up resized file from local storage
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+      } catch (uploadError) {
+        console.error('Image upload failed during update:', uploadError);
+      }
+    }
+
     const { error, value } = updateEventSchema.validate(req.body);
     if (error) {
       return res.status(400).json({

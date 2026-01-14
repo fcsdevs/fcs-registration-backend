@@ -100,14 +100,6 @@ export const calculateAttendanceRate = (attended, registered) => {
 };
 
 /**
- * Calculate capacity utilization
- */
-export const calculateCapacityUtilization = (registrations, capacity) => {
-  if (capacity === 0 || !capacity) return 0;
-  return Math.round((registrations / capacity) * 100);
-};
-
-/**
  * Check if date is in the past
  */
 export const isDateInPast = (date) => {
@@ -144,8 +136,11 @@ export const getDateRangeQuery = (startDate, endDate) => {
 export const normalizePhoneNumber = (phoneNumber) => {
   if (!phoneNumber) return phoneNumber;
 
+  // Convert to string if it's not (e.g. if a number was passed)
+  let phoneStr = String(phoneNumber);
+
   // Remove spaces, dashes, parentheses
-  let cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
+  let cleaned = phoneStr.replace(/[\s\-\(\)]/g, '');
 
   // If starts with '0', replace with '+234'
   if (cleaned.startsWith('0')) {

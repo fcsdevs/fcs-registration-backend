@@ -12,6 +12,7 @@ import {
   UnauthorizedError,
   NotFoundError,
 } from '../../middleware/error-handler.js';
+import { sendMail } from '../../lib/mail.js';
 
 const prisma = getPrismaClient();
 
@@ -19,7 +20,16 @@ const prisma = getPrismaClient();
  * Register a new user
  */
 export const registerUser = async (data) => {
-  const { phoneNumber, email, password, firstName, lastName } = data;
+  const {
+    phoneNumber, email, password, firstName, lastName,
+    otherNames, preferredName, whatsappNumber, gender, dateOfBirth,
+    maritalStatus, occupation, placeOfWork, institutionName,
+    institutionType, level, course, graduationYear,
+    membershipCategory, yearJoined, state, zone, branch, branchId,
+    preferredContactMethod, emergencyContactName, emergencyContactPhone,
+    ageBracket, guardianName, guardianPhone, guardianEmail,
+    guardianRelationship, privacyPolicyAccepted, termsAccepted
+  } = data;
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
   // Check if user already exists
@@ -34,7 +44,14 @@ export const registerUser = async (data) => {
   // Hash password
   const passwordHash = await hashPassword(password);
 
-  // Create auth user
+  // Determine if minor
+  let isMinor = false;
+  if (dateOfBirth) {
+    const dob = new Date(dateOfBirth);
+    const age = new Date().getFullYear() - dob.getFullYear();
+    if (age < 18) isMinor = true;
+  }
+
   // Create auth user
   const authUser = await prisma.authUser.create({
     data: {
@@ -51,11 +68,40 @@ export const registerUser = async (data) => {
       authUserId: authUser.id,
       firstName,
       lastName,
+      otherNames: otherNames || null,
+      preferredName: preferredName || null,
       phoneNumber: normalizedPhone || null,
       email: email || null,
-      state: data.state || null,
-      zone: data.zone || null,
-      branch: data.branch || null,
+      whatsappNumber: whatsappNumber ? normalizePhoneNumber(whatsappNumber) : null,
+      gender: gender ? gender.toUpperCase() : null,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      maritalStatus: maritalStatus ? maritalStatus.toUpperCase() : null,
+      occupation: occupation || null,
+      placeOfWork: placeOfWork || null,
+      institutionName: institutionName || null,
+      institutionType: institutionType || null,
+      level: level || null,
+      course: course || null,
+      graduationYear: graduationYear ? parseInt(graduationYear) : null,
+      membershipCategory: membershipCategory || null,
+      yearJoined: yearJoined ? parseInt(yearJoined) : null,
+      state: state || null,
+      zone: zone || null,
+      branch: branch || null,
+      branchId: branchId || null,
+      preferredContactMethod: preferredContactMethod || null,
+      emergencyContactName: emergencyContactName || null,
+      emergencyContactPhone: emergencyContactPhone ? normalizePhoneNumber(emergencyContactPhone) : null,
+      ageBracket: ageBracket || null,
+      isMinor,
+      signupSource: 'WEB',
+      guardianName: guardianName || null,
+      guardianPhone: guardianPhone ? normalizePhoneNumber(guardianPhone) : null,
+      guardianEmail: guardianEmail || null,
+      guardianRelationship: guardianRelationship || null,
+      privacyPolicyAccepted: !!privacyPolicyAccepted,
+      termsAccepted: !!termsAccepted,
+      consentTimestamp: new Date(),
     },
   });
 
@@ -217,70 +263,148 @@ export const loginUser = async (email, password) => {
 };
 
 /**
- * Send OTP to phone number
+ * Send OTP to phone number or email
  */
-export const sendOTP = async (phoneNumber, purpose) => {
-  const normalizedPhone = normalizePhoneNumber(phoneNumber);
-  // Check if user exists (for certain purposes)
-  if (purpose !== 'REGISTRATION') {
-    const authUser = await prisma.authUser.findUnique({
-      where: { phoneNumber: normalizedPhone },
+export const sendOTP = async ({ phoneNumber, email, purpose }) => {
+  try {
+    console.log(`Starting sendOTP: phone=${phoneNumber}, email=${email}, purpose=${purpose}`);
+    const normalizedPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
+
+    // Check if user exists (for certain purposes)
+    if (purpose !== 'REGISTRATION') {
+      const authUser = await prisma.authUser.findFirst({
+        where: {
+          OR: [
+            normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+            email ? { email } : undefined,
+          ].filter(Boolean),
+        },
+      });
+
+      if (!authUser) {
+        console.log('User not found for OTP purpose:', purpose);
+        throw new NotFoundError('User');
+      }
+    }
+
+    // Invalidate previous OTPs for this identifier
+    console.log('Invalidating previous OTPs...');
+    await prisma.oTPToken.deleteMany({
+      where: {
+        OR: [
+          normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+          email ? { email } : undefined,
+        ].filter(Boolean),
+        purpose,
+        usedAt: null,
+      },
     });
 
-    if (!authUser) {
-      throw new NotFoundError('User');
-    }
-  }
+    // Generate OTP
+    const code = generateOTP();
+    console.log('Generated code:', code);
 
-  // Invalidate previous OTPs
-  await prisma.oTPToken.deleteMany({
-    where: {
-      code: { not: null }, // Invalidate by pattern
-    },
-  });
-
-  // Generate OTP
-  const code = generateOTP();
-
-  // Create OTP record
-  const otp = await prisma.oTPToken.create({
-    data: {
-      // Find or create user for phone
-      userId:
-        (
-          await prisma.authUser.findUnique({
-            where: { phoneNumber: normalizedPhone },
-          })
-        )?.id || null,
+    // Create OTP record
+    console.log('Creating OTP record in DB...');
+    const otpData = {
+      phoneNumber: normalizedPhone,
+      email: email,
       code,
       purpose,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-    },
-  });
+    };
 
-  // TODO: Send OTP via SMS provider (Twilio, etc)
-  console.log(`OTP for ${normalizedPhone}: ${code}`);
+    // Find user if they exist
+    const user = await prisma.authUser.findFirst({
+      where: {
+        OR: [
+          normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+          email ? { email } : undefined,
+        ].filter(Boolean),
+      },
+    });
 
-  return {
-    message: 'OTP sent',
-    expiresIn: '10 minutes',
-    // For testing only - remove in production
-    otpCode: process.env.NODE_ENV === 'development' ? code : undefined,
-  };
+    if (user) {
+      otpData.userId = user.id;
+    }
+
+    const otp = await prisma.oTPToken.create({
+      data: otpData,
+    });
+
+    // Send OTP via Email if provided
+    if (email) {
+      const subject = purpose === 'PASSWORD_RESET'
+        ? 'Reset Your FCS Password'
+        : 'Verify Your FCS Account';
+
+      const html = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #010030; text-align: center;">FCS Nigeria</h2>
+          <p>Hello,</p>
+          <p>You requested a verification code for <strong>${purpose.replace('_', ' ')}</strong>.</p>
+          <div style="background: #f4f4f4; padding: 20px; text-align: center; border-radius: 5px; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #010030;">${code}</span>
+          </div>
+          <p>This code will expire in 10 minutes. If you did not request this, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #777; text-align: center;">&copy; ${new Date().getFullYear()} Fellowship of Christian Students (FCS) Nigeria</p>
+        </div>
+      `;
+
+      try {
+        await sendMail({
+          to: email,
+          subject,
+          text: `Your FCS verification code is: ${code}. It expires in 10 minutes.`,
+          html
+        });
+        console.log(`OTP email sent successfully to ${email}`);
+      } catch (mailError) {
+        console.error('Failed to send OTP email:', mailError);
+        // We don't throw here to allow the user to see the code in dev if needed, 
+        // but in prod this might be a problem.
+      }
+    }
+
+    if (normalizedPhone) {
+      // TODO: Implement SMS sending (e.g. via Twilio or Termii)
+      console.log(`[SMS TODO] OTP for ${normalizedPhone}: ${code}`);
+    }
+
+    return {
+      message: 'OTP sent',
+      expiresIn: '10 minutes',
+      // For testing only - remove in production
+      otpCode: process.env.NODE_ENV === 'development' ? code : undefined,
+    };
+  } catch (error) {
+    console.error('Error detail in sendOTP service:');
+    console.error(JSON.stringify(error, null, 2));
+    console.error(error);
+    throw error;
+  }
 };
 
 /**
  * Verify OTP
  */
-export const verifyOTP = async (phoneNumber, code) => {
-  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+export const verifyOTP = async ({ phoneNumber, email, code, purpose }) => {
+  const normalizedPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
+
   // Find OTP
   const otp = await prisma.oTPToken.findFirst({
     where: {
+      OR: [
+        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+        email ? { email } : undefined,
+      ].filter(Boolean),
       code,
+      purpose,
       expiresAt: {
         gt: new Date(),
       },
+      usedAt: null,
     },
   });
 
@@ -302,23 +426,22 @@ export const verifyOTP = async (phoneNumber, code) => {
     },
   });
 
-  // Get or create user
-  let authUser = await prisma.authUser.findUnique({
-    where: { phoneNumber: normalizedPhone },
+  // Get or create user (for login/registration purposes)
+  let authUser = await prisma.authUser.findFirst({
+    where: {
+      OR: [
+        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+        email ? { email } : undefined,
+      ].filter(Boolean),
+    },
   });
 
-  if (!authUser) {
-    authUser = await prisma.authUser.create({
-      data: {
-        phoneNumber: normalizedPhone,
-        passwordHash: '', // Will be set later
-      },
-    });
-  }
+  // Note: We don't necessarily create the user here anymore if it's registration
+  // Registration will use the verified status to proceed.
 
   return {
     verified: true,
-    userId: authUser.id,
+    userId: authUser?.id || null,
     message: 'OTP verified successfully',
   };
 };
@@ -383,6 +506,7 @@ export const logoutUser = async (userId) => {
   };
 };
 
+
 /**
  * Get user by ID
  */
@@ -432,5 +556,135 @@ export const getUserById = async (userId) => {
     member,
     roles,
     unit,
+  };
+};
+
+/**
+ * Request Password Reset
+ * Resolves identifier (Email/Phone/FCS Code) to user and sends OTP
+ */
+export const requestPasswordReset = async (identifier) => {
+  let authUser = null;
+
+  const idStr = String(identifier);
+
+  // Try finding by Email
+  if (idStr.includes('@')) {
+    authUser = await prisma.authUser.findUnique({
+      where: { email: idStr },
+    });
+  }
+  // Try finding by Phone
+  else if (/^(\+?234|0)\d{10}$/.test(normalizePhoneNumber(idStr))) {
+    authUser = await prisma.authUser.findUnique({
+      where: { phoneNumber: normalizePhoneNumber(idStr) },
+    });
+  }
+  // Try finding by FCS Code
+  else {
+    const member = await prisma.member.findUnique({
+      where: { fcsCode: identifier },
+      include: { authUser: true }
+    });
+    if (member) {
+      authUser = member.authUser;
+    }
+  }
+
+  if (!authUser) {
+    // Return success even if user not found to prevent enumeration, or throw specific error?
+    // For better UX during development/testing, we might throw provided error, but security best practice is generic message.
+    // However, the current codebase throws NotFoundError for other cases.
+    throw new NotFoundError('User not found with provided credentials');
+  }
+
+  // Send OTP to user's registered contact methods
+  return await sendOTP({
+    phoneNumber: authUser.phoneNumber,
+    email: authUser.email,
+    purpose: 'PASSWORD_RESET'
+  });
+};
+
+/**
+ * Reset Password
+ */
+export const resetPassword = async (identifier, code, newPassword) => {
+  // 1. Resolve User again to ensure we verify OTP against correct phone
+  let authUser = null;
+
+  const idStr = String(identifier);
+
+  if (idStr.includes('@')) {
+    authUser = await prisma.authUser.findUnique({ where: { email: idStr } });
+  } else if (/^(\+?234|0)\d{10}$/.test(normalizePhoneNumber(idStr))) {
+    authUser = await prisma.authUser.findUnique({ where: { phoneNumber: normalizePhoneNumber(idStr) } });
+  } else {
+    const member = await prisma.member.findUnique({
+      where: { fcsCode: identifier },
+      include: { authUser: true }
+    });
+    if (member) authUser = member.authUser;
+  }
+
+  if (!authUser) {
+    throw new NotFoundError('User not found');
+  }
+
+  // 2. Verify OTP
+  // verifyOTP throws error if invalid.
+  await verifyOTP({
+    phoneNumber: authUser.phoneNumber,
+    email: authUser.email,
+    code,
+    purpose: 'PASSWORD_RESET'
+  });
+
+  // 3. Hash New Password
+  const passwordHash = await hashPassword(newPassword);
+
+  // 4. Update Password
+  await prisma.authUser.update({
+    where: { id: authUser.id },
+    data: { passwordHash }
+  });
+
+  // 5. Invalidate all sessions (optional but recommended)
+  await prisma.authSession.updateMany({
+    where: { userId: authUser.id },
+    data: { revoked: true, revokedAt: new Date() }
+  });
+
+  return {
+    message: 'Password reset successfully'
+  };
+};
+
+/**
+ * Change Password (Authenticated)
+ */
+export const changePassword = async (userId, currentPassword, newPassword) => {
+  const authUser = await prisma.authUser.findUnique({
+    where: { id: userId }
+  });
+
+  if (!authUser) {
+    throw new NotFoundError('User');
+  }
+
+  const isValid = await comparePassword(currentPassword, authUser.passwordHash);
+  if (!isValid) {
+    throw new ValidationError('Invalid current password');
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await prisma.authUser.update({
+    where: { id: userId },
+    data: { passwordHash }
+  });
+
+  return {
+    message: 'Password changed successfully'
   };
 };

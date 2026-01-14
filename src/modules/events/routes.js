@@ -10,19 +10,21 @@ import {
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
+import { uploadPhoto, eventImgResize } from '../../middleware/upload.js';
+
 const router = express.Router();
 
 // GET /api/events - List events
 router.get('/', listEventsHandler);
 
 // POST /api/events - Create event
-router.post('/', authenticate, createEventHandler);
+router.post('/', authenticate, uploadPhoto.single('image'), eventImgResize, createEventHandler);
 
 // GET /api/events/:id - Get event details
 router.get('/:id', getEventHandler);
 
 // PUT /api/events/:id - Update event
-router.put('/:id', authenticate, updateEventHandler);
+router.put('/:id', authenticate, uploadPhoto.single('image'), eventImgResize, updateEventHandler);
 
 // POST /api/events/:id/publish - Publish event
 router.post('/:id/publish', authenticate, publishEventHandler);

@@ -8,6 +8,9 @@ import {
   refreshTokenHandler,
   getCurrentUser,
   checkExistence,
+  forgotPasswordHandler,
+  resetPasswordHandler,
+  changePasswordHandler,
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
@@ -33,6 +36,15 @@ router.post('/logout', authenticate, logout);
 
 // POST /api/auth/refresh - Refresh token
 router.post('/refresh', refreshTokenHandler);
+
+// POST /api/auth/forgot-password - Forgot Password
+router.post('/forgot-password', forgotPasswordHandler);
+
+// POST /api/auth/reset-password - Reset Password
+router.post('/reset-password', resetPasswordHandler);
+
+// POST /api/auth/change-password - Change Password (Authenticated)
+router.post('/change-password', authenticate, changePasswordHandler);
 
 // GET /api/auth/me - Get current user
 router.get('/me', authenticate, getCurrentUser);

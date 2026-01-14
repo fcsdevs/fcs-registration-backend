@@ -14,12 +14,35 @@ import {
 import { getEffectiveScope } from '../users/service.js';
 import { createMemberSchema, updateMemberSchema, paginationSchema } from '../../lib/validation.js';
 import prisma from '../../lib/prisma.js';
+import { cloudinaryUploadImage } from '../../lib/cloudinary.js';
+import fs from 'fs';
+
+/**
+ * Handle image upload for member profile
+ */
+const handleProfileImageUpload = async (req) => {
+  if (req.file) {
+    try {
+      const uploadResult = await cloudinaryUploadImage(req.file.path);
+      req.body.profilePhotoUrl = uploadResult.url;
+
+      // Clean up resized file from local storage
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch (uploadError) {
+      console.error('Profile image upload failed:', uploadError);
+      // We continue even if image fails
+    }
+  }
+};
 
 /**
  * POST /api/members
  */
 export const createMemberHandler = async (req, res, next) => {
   try {
+    await handleProfileImageUpload(req);
     const { error, value } = createMemberSchema.validate(req.body);
     if (error) {
       return res.status(400).json({
@@ -111,6 +134,7 @@ export const getMemberByCodeHandler = async (req, res, next) => {
  */
 export const updateMemberHandler = async (req, res, next) => {
   try {
+    await handleProfileImageUpload(req);
     const { error, value } = updateMemberSchema.validate(req.body);
     if (error) {
       return res.status(400).json({
@@ -136,6 +160,7 @@ export const updateMemberHandler = async (req, res, next) => {
  */
 export const updateProfileHandler = async (req, res, next) => {
   try {
+    await handleProfileImageUpload(req);
     const { error, value } = updateMemberSchema.validate(req.body);
     if (error) {
       return res.status(400).json({
