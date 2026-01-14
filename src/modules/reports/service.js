@@ -72,12 +72,8 @@ export const getEventAnalytics = async (eventId, query = {}) => {
     centerId: center.id,
     name: center.centerName,
     state: center.state,
-    capacity: center.capacity,
     registrations: center._count.registrations,
     attendance: center._count.attendances,
-    utilizationRate: center.capacity
-      ? (center._count.registrations / center.capacity) * 100
-      : 0,
   }));
 
   // Calculate overall statistics
@@ -176,10 +172,6 @@ export const getCenterAnalytics = async (centerId, query = {}) => {
     attendanceByMode[mode] = (attendanceByMode[mode] || 0) + 1;
   });
 
-  // Calculate statistics
-  const capacityUtilization = center.capacity
-    ? (registrations.length / center.capacity) * 100
-    : 0;
   const attendanceRate =
     registrations.length > 0
       ? (attendance.length / registrations.length) * 100
@@ -191,7 +183,6 @@ export const getCenterAnalytics = async (centerId, query = {}) => {
       name: center.centerName,
       state: center.state,
       address: center.address,
-      capacity: center.capacity,
     },
     event: {
       id: center.event.id,
@@ -201,8 +192,6 @@ export const getCenterAnalytics = async (centerId, query = {}) => {
       totalRegistrations: registrations.length,
       totalAttendance: attendance.length,
       attendanceRate: parseFloat(attendanceRate.toFixed(2)),
-      capacityUtilization: parseFloat(capacityUtilization.toFixed(2)),
-      spotsAvailable: Math.max(0, (center.capacity || 0) - registrations.length),
     },
     registrationsByMode: Object.entries(registrationsByMode).map(
       ([mode, count]) => ({ mode, count })
@@ -601,7 +590,6 @@ export const getDashboardSummary = async (query = {}) => {
       attendanceRate: recentEvent._count.registrations > 0
         ? Math.round((recentEvent._count.attendances / recentEvent._count.registrations) * 100)
         : 0,
-      capacity: recentEvent.capacity || 0,
       centers: recentEvent.centers.map(c => ({
         name: c.centerName,
         attended: c._count.attendances,

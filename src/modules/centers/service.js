@@ -2,7 +2,6 @@ import { getPrismaClient } from '../../lib/prisma.js';
 import {
   getPaginationParams,
   formatPaginatedResponse,
-  calculateCapacityUtilization,
 } from '../../lib/helpers.js';
 import {
   ValidationError,
@@ -20,7 +19,7 @@ import { checkScopeAccess } from '../users/service.js';
  * Create event center
  */
 export const createCenter = async (data, userId) => {
-  const { eventId, centerName, country, stateId, address, capacity } = data;
+  const { eventId, centerName, country, stateId, address } = data;
 
   // Verify event exists
   const event = await prisma.event.findUnique({
@@ -61,7 +60,6 @@ export const createCenter = async (data, userId) => {
       country: country || 'Nigeria',
       stateId: stateId || null,
       address,
-      capacity: capacity || null,
       createdBy: userId,
     },
   });
@@ -182,7 +180,6 @@ export const listActiveCenters = async (eventId, query = {}) => {
         country: true,
         state: { select: { id: true, name: true } },
         address: true,
-        capacity: true,
         isActive: true,
       },
       orderBy: { centerName: 'asc' },
@@ -197,7 +194,7 @@ export const listActiveCenters = async (eventId, query = {}) => {
  * Update center
  */
 export const updateCenter = async (centerId, data, userId) => {
-  const { centerName, address, capacity, isActive } = data;
+  const { centerName, address, isActive } = data;
 
   const center = await prisma.eventCenter.findUnique({
     where: { id: centerId },
@@ -221,7 +218,6 @@ export const updateCenter = async (centerId, data, userId) => {
     data: {
       centerName: centerName || center.centerName,
       address: address || center.address,
-      capacity: capacity !== undefined ? capacity : center.capacity,
       isActive: isActive !== undefined ? isActive : center.isActive,
     },
   });
@@ -343,10 +339,8 @@ export const getCenterStatistics = async (centerId) => {
   return {
     centerId,
     centerName: center.centerName,
-    capacity: center.capacity,
     registrations,
     attendance: attendances,
-    capacityUtilization: calculateCapacityUtilization(registrations, center.capacity),
     groups,
   };
 };
@@ -403,7 +397,6 @@ export const getCentersByState = async (eventId, stateId) => {
       id: true,
       centerName: true,
       address: true,
-      capacity: true,
     },
   });
 };

@@ -27,7 +27,7 @@ export const createEvent = async (data, userId) => {
     registrationStart,
     registrationEnd,
     participationMode,
-    capacity,
+    imageUrl,
   } = data;
 
   // Permission Check
@@ -65,7 +65,7 @@ export const createEvent = async (data, userId) => {
       registrationStart: new Date(registrationStart),
       registrationEnd: new Date(registrationEnd),
       participationMode,
-      capacity: capacity || null,
+      imageUrl: imageUrl || null,
       createdBy: userId,
     },
   });
@@ -94,7 +94,6 @@ export const getEventById = async (eventId) => {
           id: true,
           centerName: true,
           state: { select: { name: true } },
-          capacity: true,
         },
       },
     },
@@ -167,7 +166,14 @@ export const listEvents = async (query) => {
     if (unit && !unit.unitType.name.includes('National')) {
       const ancestors = await getAncestorIds(unitId);
       const descendants = await getDescendantIds(unitId);
-      where.unitId = { in: [unitId, ...ancestors, ...descendants] };
+
+      // Visibility Logic: 
+      // 1. Show anything in hierarchy (draft or published)
+      // 2. Show ANY published event from anywhere
+      where.OR = [
+        { unitId: { in: [unitId, ...ancestors, ...descendants] } },
+        { isPublished: true }
+      ];
     }
     // If National, we show all? Or just National events? 
     // Usually National Admin wants to see everything.
@@ -227,7 +233,7 @@ export const updateEvent = async (eventId, data, userId) => {
     registrationStart,
     registrationEnd,
     participationMode,
-    capacity,
+    imageUrl,
   } = data;
 
   const event = await prisma.event.findUnique({
@@ -267,7 +273,7 @@ export const updateEvent = async (eventId, data, userId) => {
   if (registrationStart) updateData.registrationStart = new Date(registrationStart);
   if (registrationEnd) updateData.registrationEnd = new Date(registrationEnd);
   if (participationMode) updateData.participationMode = participationMode;
-  if (capacity !== undefined) updateData.capacity = capacity;
+  if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
 
   return prisma.event.update({
     where: { id: eventId },
@@ -346,7 +352,6 @@ export const getEventStatistics = async (eventId) => {
         select: {
           id: true,
           centerName: true,
-          capacity: true,
           _count: {
             select: {
               registrations: true,
@@ -375,10 +380,8 @@ export const getEventStatistics = async (eventId) => {
     centerStatistics: centerStats.map((center) => ({
       centerId: center.id,
       centerName: center.centerName,
-      capacity: center.capacity,
       registrations: center._count.registrations,
       attendance: center._count.attendances,
-      capacityUtilization: center.capacity ? Math.round((center._count.registrations / center.capacity) * 100) : 0,
     })),
   };
 };

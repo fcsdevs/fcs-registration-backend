@@ -100,14 +100,6 @@ export const calculateAttendanceRate = (attended, registered) => {
 };
 
 /**
- * Calculate capacity utilization
- */
-export const calculateCapacityUtilization = (registrations, capacity) => {
-  if (capacity === 0 || !capacity) return 0;
-  return Math.round((registrations / capacity) * 100);
-};
-
-/**
  * Check if date is in the past
  */
 export const isDateInPast = (date) => {

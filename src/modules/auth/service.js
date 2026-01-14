@@ -19,7 +19,16 @@ const prisma = getPrismaClient();
  * Register a new user
  */
 export const registerUser = async (data) => {
-  const { phoneNumber, email, password, firstName, lastName } = data;
+  const {
+    phoneNumber, email, password, firstName, lastName,
+    otherNames, preferredName, whatsappNumber, gender, dateOfBirth,
+    maritalStatus, occupation, placeOfWork, institutionName,
+    institutionType, level, course, graduationYear,
+    membershipCategory, yearJoined, state, zone, branch, branchId,
+    preferredContactMethod, emergencyContactName, emergencyContactPhone,
+    ageBracket, guardianName, guardianPhone, guardianEmail,
+    guardianRelationship, privacyPolicyAccepted, termsAccepted
+  } = data;
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
   // Check if user already exists
@@ -34,7 +43,14 @@ export const registerUser = async (data) => {
   // Hash password
   const passwordHash = await hashPassword(password);
 
-  // Create auth user
+  // Determine if minor
+  let isMinor = false;
+  if (dateOfBirth) {
+    const dob = new Date(dateOfBirth);
+    const age = new Date().getFullYear() - dob.getFullYear();
+    if (age < 18) isMinor = true;
+  }
+
   // Create auth user
   const authUser = await prisma.authUser.create({
     data: {
@@ -51,11 +67,40 @@ export const registerUser = async (data) => {
       authUserId: authUser.id,
       firstName,
       lastName,
+      otherNames: otherNames || null,
+      preferredName: preferredName || null,
       phoneNumber: normalizedPhone || null,
       email: email || null,
-      state: data.state || null,
-      zone: data.zone || null,
-      branch: data.branch || null,
+      whatsappNumber: whatsappNumber ? normalizePhoneNumber(whatsappNumber) : null,
+      gender: gender ? gender.toUpperCase() : null,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      maritalStatus: maritalStatus ? maritalStatus.toUpperCase() : null,
+      occupation: occupation || null,
+      placeOfWork: placeOfWork || null,
+      institutionName: institutionName || null,
+      institutionType: institutionType || null,
+      level: level || null,
+      course: course || null,
+      graduationYear: graduationYear ? parseInt(graduationYear) : null,
+      membershipCategory: membershipCategory || null,
+      yearJoined: yearJoined ? parseInt(yearJoined) : null,
+      state: state || null,
+      zone: zone || null,
+      branch: branch || null,
+      branchId: branchId || null,
+      preferredContactMethod: preferredContactMethod || null,
+      emergencyContactName: emergencyContactName || null,
+      emergencyContactPhone: emergencyContactPhone ? normalizePhoneNumber(emergencyContactPhone) : null,
+      ageBracket: ageBracket || null,
+      isMinor,
+      signupSource: 'WEB',
+      guardianName: guardianName || null,
+      guardianPhone: guardianPhone ? normalizePhoneNumber(guardianPhone) : null,
+      guardianEmail: guardianEmail || null,
+      guardianRelationship: guardianRelationship || null,
+      privacyPolicyAccepted: !!privacyPolicyAccepted,
+      termsAccepted: !!termsAccepted,
+      consentTimestamp: new Date(),
     },
   });
 
@@ -310,7 +355,7 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
 /**
  * Verify OTP
  */
-export const verifyOTP = async ({ phoneNumber, email, code }) => {
+export const verifyOTP = async ({ phoneNumber, email, code, purpose }) => {
   const normalizedPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
 
   // Find OTP
@@ -321,6 +366,7 @@ export const verifyOTP = async ({ phoneNumber, email, code }) => {
         email ? { email } : undefined,
       ].filter(Boolean),
       code,
+      purpose,
       expiresAt: {
         gt: new Date(),
       },
@@ -518,8 +564,12 @@ export const requestPasswordReset = async (identifier) => {
     throw new NotFoundError('User not found with provided credentials');
   }
 
-  // Send OTP to user's phone
-  return await sendOTP({ phoneNumber: authUser.phoneNumber, purpose: 'PASSWORD_RESET' });
+  // Send OTP to user's registered contact methods
+  return await sendOTP({
+    phoneNumber: authUser.phoneNumber,
+    email: authUser.email,
+    purpose: 'PASSWORD_RESET'
+  });
 };
 
 /**
@@ -549,7 +599,12 @@ export const resetPassword = async (identifier, code, newPassword) => {
 
   // 2. Verify OTP
   // verifyOTP throws error if invalid.
-  await verifyOTP({ phoneNumber: authUser.phoneNumber, code });
+  await verifyOTP({
+    phoneNumber: authUser.phoneNumber,
+    email: authUser.email,
+    code,
+    purpose: 'PASSWORD_RESET'
+  });
 
   // 3. Hash New Password
   const passwordHash = await hashPassword(newPassword);

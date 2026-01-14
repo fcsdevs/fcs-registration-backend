@@ -13,6 +13,7 @@ import {
   updateProfileHandler,
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
+import { uploadPhoto, eventImgResize } from '../../middleware/upload.js';
 
 const router = express.Router();
 
@@ -23,19 +24,19 @@ router.get('/search', authenticate, searchMembersHandler);
 router.get('/', authenticate, listMembersHandler);
 
 // POST /api/members - Create member
-router.post('/', authenticate, createMemberHandler);
+router.post('/', authenticate, uploadPhoto.single('image'), eventImgResize, createMemberHandler);
 
 // GET /api/members/code/:code - Get member by FCS code (MUST be before /:id)
 router.get('/code/:code', authenticate, getMemberByCodeHandler);
 
 // PUT /api/members/profile - Update own profile (MUST be before /:id)
-router.put('/profile', authenticate, updateProfileHandler);
+router.put('/profile', authenticate, uploadPhoto.single('image'), eventImgResize, updateProfileHandler);
 
 // GET /api/members/:id - Get member details
 router.get('/:id', authenticate, getMemberHandler);
 
 // PUT /api/members/:id - Update member
-router.put('/:id', authenticate, updateMemberHandler);
+router.put('/:id', authenticate, uploadPhoto.single('image'), eventImgResize, updateMemberHandler);
 
 // GET /api/members/:id/attendance-summary - Get member attendance
 router.get('/:id/attendance-summary', authenticate, getAttendanceSummaryHandler);

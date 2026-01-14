@@ -65,8 +65,10 @@ model AuthSession {
 
 model OTPToken {
   id                String            @id @default(cuid())
-  userId            String
-  user              AuthUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String?
+  user              AuthUser?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber       String?
+  email             String?
   code              String
   purpose           String            // "email_verification" | "phone_verification" | "password_reset"
   expiresAt         DateTime
@@ -75,6 +77,8 @@ model OTPToken {
   createdAt         DateTime          @default(now())
 
   @@index([userId])
+  @@index([phoneNumber])
+  @@index([email])
   @@index([code])
 }
 
@@ -102,20 +106,51 @@ model Member {
   authUser          AuthUser?         @relation(fields: [authUserId], references: [id], onDelete: SetNull)
   firstName         String
   lastName          String
+  otherNames        String?           // New: Middle / additional
+  preferredName     String?           // New: Display name
   email             String?
   phoneNumber       String?
+  whatsappNumber    String?           // New: If different
   dateOfBirth       DateTime?
   gender            String?           // "MALE" | "FEMALE" | "OTHER"
-  maritalStatus     String?
-  occupation        String?
+  maritalStatus     String?           // Added maritalStatus
+  occupation        String?           // Added occupation
+  placeOfWork       String?           // New: Organization
+  institutionName   String?           // New: School / University
+  institutionType   String?           // New: PRIMARY | SECONDARY | TERTIARY
+  level             String?           // New: Class / Level
+  course            String?           // New: Tertiary only
+  graduationYear    Int?              // New: Tertiary only
+  membershipCategory String?          // New: PRIMARY | SECONDARY | TERTIARY | ASSOCIATE
+  yearJoined        Int?              // New: Historical data
   state             String?
   zone              String?           // Text-based Zone/Area
   branch            String?           // Text-based Branch
+  branchId          String?           // New: Primary FCS unit linkage
+  unit              Unit?             @relation("MemberBranch", fields: [branchId], references: [id])
+  preferredContactMethod String?     // New: SMS | EMAIL | WHATSAPP
+  emergencyContactName   String?     // New: Safety
+  emergencyContactPhone  String?     // New: Safety
+  ageBracket        String?           // New: Required if DOB not provided
+  isMinor           Boolean           @default(false) // New: Derived
+  signupSource      String            @default("WEB") // New: WEB | ADMIN | IMPORT
   profilePhotoUrl   String?
   isActive          Boolean           @default(true)
   joinedAt          DateTime          @default(now())
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+
+  // Guardian Info (for minors)
+  guardianName      String?
+  guardianPhone     String?
+  guardianEmail     String?
+  guardianRelationship String?
+
+  // Compliance
+  privacyPolicyAccepted Boolean       @default(false)
+  termsAccepted         Boolean       @default(false)
+  consentVersion        String?
+  consentTimestamp      DateTime?
 
   guardians         Guardian[]        @relation("GuardedBy")
   guardianOf        Guardian[]        @relation("IsGuardianOf")
@@ -130,6 +165,7 @@ model Member {
   @@index([authUserId])
   @@index([phoneNumber])
   @@index([email])
+  @@index([branchId])
 }
 
 model Guardian {
@@ -179,6 +215,7 @@ model Unit {
   roleAssignments   RoleAssignment[]
   auditLogs         AuditLog[]
   invites           Invite[]          // Added back-relation
+  members           Member[]          @relation("MemberBranch")
 
   @@unique([unitTypeId, name, parentId])
   @@index([unitTypeId])
@@ -249,7 +286,7 @@ model Event {
   registrationEnd   DateTime
   participationMode String            // "ONLINE" | "ONSITE" | "HYBRID"
   isPublished       Boolean           @default(false)
-  capacity          Int?
+  imageUrl          String?
   createdBy         String
   createdByUser     AuthUser          @relation("EventCreatedBy", fields: [createdBy], references: [id])
   createdAt         DateTime          @default(now())
@@ -296,7 +333,6 @@ model EventCenter {
   areaId            String?
   zoneId            String?
   address           String
-  capacity          Int?
   isActive          Boolean           @default(true)
   createdBy         String
   createdByUser     AuthUser          @relation("CenterCreatedBy", fields: [createdBy], references: [id])
@@ -385,7 +421,6 @@ model EventGroup {
   name              String
   description       String?
   type              String            // "BIBLE_STUDY" | "WORKSHOP" | "BREAKOUT"
-  capacity          Int?
   isMandatory       Boolean           @default(false)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -540,7 +575,6 @@ model AnalyticsSnapshot {
   onlineAttendance  Int
   onsiteAttendance  Int
   attendanceRate    Float
-  capacityUtilization Float?
   createdAt         DateTime          @default(now())
 
   @@unique([eventId, snapshotDate])
