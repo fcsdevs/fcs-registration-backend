@@ -200,7 +200,21 @@ export const listMembers = async (query) => {
  * Update member
  */
 export const updateMember = async (memberId, data) => {
-  const { firstName, lastName, email, phoneNumber, dateOfBirth, gender, maritalStatus, occupation, state } = data;
+  // Destructure all fields
+  const {
+    firstName, lastName, otherNames, preferredName,
+    email, phoneNumber, whatsappNumber,
+    dateOfBirth, gender, maritalStatus,
+    occupation, placeOfWork,
+    institutionName, institutionType, level, course, graduationYear,
+    membershipCategory, yearJoined,
+    state, zone, branch, branchId,
+    preferredContactMethod,
+    emergencyContactName, emergencyContactPhone,
+    ageBracket,
+    guardianName, guardianPhone, guardianEmail, guardianRelationship,
+    profilePhotoUrl
+  } = data;
 
   // Check if member exists
   const member = await prisma.member.findUnique({
@@ -221,19 +235,52 @@ export const updateMember = async (memberId, data) => {
     }
   }
 
+  // Helper to only update if value is provided (not undefined)
+  // detailed update logic
+  const updateData = {};
+  if (firstName !== undefined) updateData.firstName = firstName;
+  if (lastName !== undefined) updateData.lastName = lastName;
+  if (otherNames !== undefined) updateData.otherNames = otherNames;
+  if (preferredName !== undefined) updateData.preferredName = preferredName;
+  if (email !== undefined) updateData.email = email;
+  if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+  if (whatsappNumber !== undefined) updateData.whatsappNumber = whatsappNumber;
+  if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+  if (gender !== undefined) updateData.gender = gender;
+  if (maritalStatus !== undefined) updateData.maritalStatus = maritalStatus;
+
+  if (occupation !== undefined) updateData.occupation = occupation;
+  if (placeOfWork !== undefined) updateData.placeOfWork = placeOfWork;
+
+  if (institutionName !== undefined) updateData.institutionName = institutionName;
+  if (institutionType !== undefined) updateData.institutionType = institutionType;
+  if (level !== undefined) updateData.level = level;
+  if (course !== undefined) updateData.course = course;
+  if (graduationYear !== undefined) updateData.graduationYear = graduationYear ? parseInt(graduationYear) : null;
+
+  if (membershipCategory !== undefined) updateData.membershipCategory = membershipCategory;
+  if (yearJoined !== undefined) updateData.yearJoined = yearJoined ? parseInt(yearJoined) : null;
+
+  if (state !== undefined) updateData.state = state;
+  if (zone !== undefined) updateData.zone = zone;
+  if (branch !== undefined) updateData.branch = branch;
+  if (branchId !== undefined) updateData.branchId = branchId;
+
+  if (preferredContactMethod !== undefined) updateData.preferredContactMethod = preferredContactMethod;
+  if (emergencyContactName !== undefined) updateData.emergencyContactName = emergencyContactName;
+  if (emergencyContactPhone !== undefined) updateData.emergencyContactPhone = emergencyContactPhone;
+  if (ageBracket !== undefined) updateData.ageBracket = ageBracket;
+
+  if (guardianName !== undefined) updateData.guardianName = guardianName;
+  if (guardianPhone !== undefined) updateData.guardianPhone = guardianPhone;
+  if (guardianEmail !== undefined) updateData.guardianEmail = guardianEmail;
+  if (guardianRelationship !== undefined) updateData.guardianRelationship = guardianRelationship;
+
+  if (profilePhotoUrl !== undefined) updateData.profilePhotoUrl = profilePhotoUrl;
+
   const updatedMember = await prisma.member.update({
     where: { id: memberId },
-    data: {
-      firstName: firstName || member.firstName,
-      lastName: lastName || member.lastName,
-      email: email !== undefined ? email : member.email,
-      phoneNumber: phoneNumber || member.phoneNumber,
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : member.dateOfBirth,
-      gender: gender || member.gender,
-      maritalStatus: maritalStatus || member.maritalStatus,
-      occupation: occupation || member.occupation,
-      state: state || member.state,
-    },
+    data: updateData,
   });
 
   return updatedMember;

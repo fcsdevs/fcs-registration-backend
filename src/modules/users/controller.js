@@ -4,8 +4,22 @@ import {
     revokeUserRole,
     getUserById,
     getEffectiveScope,
+    updateUserProfile,
 } from './service.js';
 import { paginationSchema } from '../../lib/validation.js';
+
+export const updateProfileHandler = async (req, res, next) => {
+    try {
+        const userId = req.userId; // Always update self
+        const result = await updateUserProfile(userId, req.body);
+        res.status(200).json({
+            message: 'Profile updated successfully',
+            data: result,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
 
 export const listUsersHandler = async (req, res, next) => {
     try {

@@ -261,7 +261,7 @@ export const updateEvent = async (eventId, data, userId) => {
   const updateData = {};
 
   if (title) updateData.title = title;
-  if (description !== undefined) updateData.description = description;
+  if (description !== undefined) updateData.description = description || null;
   if (startDate) {
     updateData.startDate = new Date(startDate);
     // Removed validation: Allow registration to extend into or after event period
@@ -273,7 +273,7 @@ export const updateEvent = async (eventId, data, userId) => {
   if (registrationStart) updateData.registrationStart = new Date(registrationStart);
   if (registrationEnd) updateData.registrationEnd = new Date(registrationEnd);
   if (participationMode) updateData.participationMode = participationMode;
-  if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+  if (imageUrl !== undefined) updateData.imageUrl = imageUrl || null;
 
   return prisma.event.update({
     where: { id: eventId },
@@ -458,4 +458,33 @@ export const isRegistrationOpen = (event) => {
 export const isEventHappening = (event) => {
   const now = new Date();
   return now >= event.startDate && now <= event.endDate;
+};
+
+/**
+ * Delete event
+ */
+export const deleteEvent = async (eventId, userId) => {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+  });
+
+  if (!event) {
+    throw new NotFoundError('Event');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to delete this event');
+    }
+  }
+
+  // Optional: Prevent deletion if there are registrations? 
+  // For now, we allow it (Prisma will cascade delete as per schema)
+  // But maybe we should warn if it's already published?
+
+  return prisma.event.delete({
+    where: { id: eventId },
+  });
 };

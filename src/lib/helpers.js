@@ -56,9 +56,8 @@ export const generateUUID = () => {
  * Generate FCS Member Code (format: FCS-XXXX-XXXX)
  */
 export const generateFCSCode = () => {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `FCS-${timestamp}-${random}`;
+  const random = Math.floor(10000 + Math.random() * 90000).toString();
+  return `FCS-Nig-${random}`;
 };
 
 /**

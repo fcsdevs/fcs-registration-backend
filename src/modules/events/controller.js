@@ -6,6 +6,7 @@ import {
   publishEvent,
   getEventStatistics,
   updateEventSettings,
+  deleteEvent,
 } from './service.js';
 import { createEventSchema, updateEventSchema, paginationSchema } from '../../lib/validation.js';
 
@@ -189,6 +190,20 @@ export const updateEventSettingsHandler = async (req, res, next) => {
     res.status(200).json({
       data: settings,
       message: 'Event settings updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DELETE /api/events/:id - Delete event
+ */
+export const deleteEventHandler = async (req, res, next) => {
+  try {
+    await deleteEvent(req.params.id, req.userId);
+    res.status(200).json({
+      message: 'Event deleted successfully',
     });
   } catch (error) {
     next(error);

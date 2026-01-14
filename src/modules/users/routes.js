@@ -3,11 +3,15 @@ import {
     assignUserRoleHandler,
     revokeUserRoleHandler,
     getUserByIdHandler,
+    updateProfileHandler,
 } from './controller.js';
 import express from 'express';
 import { authenticate, authorize } from '../../middleware/auth.js';
 
 const router = express.Router();
+
+// PUT /api/users/profile - Update current user profile
+router.put('/profile', authenticate, updateProfileHandler);
 
 // GET /api/users - List users with filters (role, unitId)
 router.get('/', authenticate, authorize(['National Admin', 'Regional Admin', 'State Admin', 'Zone Admin', 'Area Admin', 'Branch Admin']), listUsersHandler);
