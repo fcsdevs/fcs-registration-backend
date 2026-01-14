@@ -40,6 +40,7 @@ import {
   UnauthorizedError,
   NotFoundError,
 } from '../../middleware/error-handler.js';
+import { sendMail } from '../../lib/mail.js';
 
 const prisma = getPrismaClient();
 
@@ -47,7 +48,16 @@ const prisma = getPrismaClient();
  * Register a new user
  */
 export const registerUser = async (data) => {
-  const { phoneNumber, email, password, firstName, lastName } = data;
+  const {
+    phoneNumber, email, password, firstName, lastName,
+    otherNames, preferredName, whatsappNumber, gender, dateOfBirth,
+    maritalStatus, occupation, placeOfWork, institutionName,
+    institutionType, level, course, graduationYear,
+    membershipCategory, yearJoined, state, zone, branch, branchId,
+    preferredContactMethod, emergencyContactName, emergencyContactPhone,
+    ageBracket, guardianName, guardianPhone, guardianEmail,
+    guardianRelationship, privacyPolicyAccepted, termsAccepted
+  } = data;
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
   // Check if user already exists
@@ -62,7 +72,14 @@ export const registerUser = async (data) => {
   // Hash password
   const passwordHash = await hashPassword(password);
 
-  // Create auth user
+  // Determine if minor
+  let isMinor = false;
+  if (dateOfBirth) {
+    const dob = new Date(dateOfBirth);
+    const age = new Date().getFullYear() - dob.getFullYear();
+    if (age &lt; 18) isMinor = true;
+  }
+
   // Create auth user
   const authUser = await prisma.authUser.create({
     data: {
@@ -79,11 +96,40 @@ export const registerUser = async (data) => {
       authUserId: authUser.id,
       firstName,
       lastName,
+      otherNames: otherNames || null,
+      preferredName: preferredName || null,
       phoneNumber: normalizedPhone || null,
       email: email || null,
-      state: data.state || null,
-      zone: data.zone || null,
-      branch: data.branch || null,
+      whatsappNumber: whatsappNumber ? normalizePhoneNumber(whatsappNumber) : null,
+      gender: gender ? gender.toUpperCase() : null,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      maritalStatus: maritalStatus ? maritalStatus.toUpperCase() : null,
+      occupation: occupation || null,
+      placeOfWork: placeOfWork || null,
+      institutionName: institutionName || null,
+      institutionType: institutionType || null,
+      level: level || null,
+      course: course || null,
+      graduationYear: graduationYear ? parseInt(graduationYear) : null,
+      membershipCategory: membershipCategory || null,
+      yearJoined: yearJoined ? parseInt(yearJoined) : null,
+      state: state || null,
+      zone: zone || null,
+      branch: branch || null,
+      branchId: branchId || null,
+      preferredContactMethod: preferredContactMethod || null,
+      emergencyContactName: emergencyContactName || null,
+      emergencyContactPhone: emergencyContactPhone ? normalizePhoneNumber(emergencyContactPhone) : null,
+      ageBracket: ageBracket || null,
+      isMinor,
+      signupSource: 'WEB',
+      guardianName: guardianName || null,
+      guardianPhone: guardianPhone ? normalizePhoneNumber(guardianPhone) : null,
+      guardianEmail: guardianEmail || null,
+      guardianRelationship: guardianRelationship || null,
+      privacyPolicyAccepted: !!privacyPolicyAccepted,
+      termsAccepted: !!termsAccepted,
+      consentTimestamp: new Date(),
     },
   });
 
@@ -245,70 +291,148 @@ export const loginUser = async (email, password) => {
 };
 
 /**
- * Send OTP to phone number
+ * Send OTP to phone number or email
  */
-export const sendOTP = async (phoneNumber, purpose) => {
-  const normalizedPhone = normalizePhoneNumber(phoneNumber);
-  // Check if user exists (for certain purposes)
-  if (purpose !== 'REGISTRATION') {
-    const authUser = await prisma.authUser.findUnique({
-      where: { phoneNumber: normalizedPhone },
+export const sendOTP = async ({ phoneNumber, email, purpose }) => {
+  try {
+    console.log(`Starting sendOTP: phone=${phoneNumber}, email=${email}, purpose=${purpose}`);
+    const normalizedPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
+
+    // Check if user exists (for certain purposes)
+    if (purpose !== 'REGISTRATION') {
+      const authUser = await prisma.authUser.findFirst({
+        where: {
+          OR: [
+            normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+            email ? { email } : undefined,
+          ].filter(Boolean),
+        },
+      });
+
+      if (!authUser) {
+        console.log('User not found for OTP purpose:', purpose);
+        throw new NotFoundError('User');
+      }
+    }
+
+    // Invalidate previous OTPs for this identifier
+    console.log('Invalidating previous OTPs...');
+    await prisma.oTPToken.deleteMany({
+      where: {
+        OR: [
+          normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+          email ? { email } : undefined,
+        ].filter(Boolean),
+        purpose,
+        usedAt: null,
+      },
     });
 
-    if (!authUser) {
-      throw new NotFoundError('User');
-    }
-  }
+    // Generate OTP
+    const code = generateOTP();
+    console.log('Generated code:', code);
 
-  // Invalidate previous OTPs
-  await prisma.oTPToken.deleteMany({
-    where: {
-      code: { not: null }, // Invalidate by pattern
-    },
-  });
-
-  // Generate OTP
-  const code = generateOTP();
-
-  // Create OTP record
-  const otp = await prisma.oTPToken.create({
-    data: {
-      // Find or create user for phone
-      userId:
-        (
-          await prisma.authUser.findUnique({
-            where: { phoneNumber: normalizedPhone },
-          })
-        )?.id || null,
+    // Create OTP record
+    console.log('Creating OTP record in DB...');
+    const otpData = {
+      phoneNumber: normalizedPhone,
+      email: email,
       code,
       purpose,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-    },
-  });
+    };
 
-  // TODO: Send OTP via SMS provider (Twilio, etc)
-  console.log(`OTP for ${normalizedPhone}: ${code}`);
+    // Find user if they exist
+    const user = await prisma.authUser.findFirst({
+      where: {
+        OR: [
+          normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+          email ? { email } : undefined,
+        ].filter(Boolean),
+      },
+    });
 
-  return {
-    message: 'OTP sent',
-    expiresIn: '10 minutes',
-    // For testing only - remove in production
-    otpCode: process.env.NODE_ENV === 'development' ? code : undefined,
-  };
+    if (user) {
+      otpData.userId = user.id;
+    }
+
+    const otp = await prisma.oTPToken.create({
+      data: otpData,
+    });
+
+    // Send OTP via Email if provided
+    if (email) {
+      const subject = purpose === 'PASSWORD_RESET'
+        ? 'Reset Your FCS Password'
+        : 'Verify Your FCS Account';
+
+      const html = `
+        &lt;div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          &lt;h2 style="color: #010030; text-align: center;">FCS Nigeria&lt;/h2>
+          &lt;p>Hello,&lt;/p>
+          &lt;p>You requested a verification code for &lt;strong>${purpose.replace('_', ' ')}&lt;/strong>.&lt;/p>
+          &lt;div style="background: #f4f4f4; padding: 20px; text-align: center; border-radius: 5px; margin: 20px 0;">
+            &lt;span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #010030;">${code}&lt;/span>
+          &lt;/div>
+          &lt;p>This code will expire in 10 minutes. If you did not request this, please ignore this email.&lt;/p>
+          &lt;hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          &lt;p style="font-size: 12px; color: #777; text-align: center;">&amp;copy; ${new Date().getFullYear()} Fellowship of Christian Students (FCS) Nigeria&lt;/p>
+        &lt;/div>
+      `;
+
+      try {
+        await sendMail({
+          to: email,
+          subject,
+          text: `Your FCS verification code is: ${code}. It expires in 10 minutes.`,
+          html
+        });
+        console.log(`OTP email sent successfully to ${email}`);
+      } catch (mailError) {
+        console.error('Failed to send OTP email:', mailError);
+        // We don't throw here to allow the user to see the code in dev if needed, 
+        // but in prod this might be a problem.
+      }
+    }
+
+    if (normalizedPhone) {
+      // TODO: Implement SMS sending (e.g. via Twilio or Termii)
+      console.log(`[SMS TODO] OTP for ${normalizedPhone}: ${code}`);
+    }
+
+    return {
+      message: 'OTP sent',
+      expiresIn: '10 minutes',
+      // For testing only - remove in production
+      otpCode: process.env.NODE_ENV === 'development' ? code : undefined,
+    };
+  } catch (error) {
+    console.error('Error detail in sendOTP service:');
+    console.error(JSON.stringify(error, null, 2));
+    console.error(error);
+    throw error;
+  }
 };
 
 /**
  * Verify OTP
  */
-export const verifyOTP = async (phoneNumber, code) => {
-  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+export const verifyOTP = async ({ phoneNumber, email, code, purpose }) => {
+  const normalizedPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
+
   // Find OTP
   const otp = await prisma.oTPToken.findFirst({
     where: {
+      OR: [
+        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+        email ? { email } : undefined,
+      ].filter(Boolean),
       code,
+      purpose,
       expiresAt: {
         gt: new Date(),
       },
+      usedAt: null,
     },
   });
 
@@ -330,23 +454,22 @@ export const verifyOTP = async (phoneNumber, code) => {
     },
   });
 
-  // Get or create user
-  let authUser = await prisma.authUser.findUnique({
-    where: { phoneNumber: normalizedPhone },
+  // Get or create user (for login/registration purposes)
+  let authUser = await prisma.authUser.findFirst({
+    where: {
+      OR: [
+        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
+        email ? { email } : undefined,
+      ].filter(Boolean),
+    },
   });
 
-  if (!authUser) {
-    authUser = await prisma.authUser.create({
-      data: {
-        phoneNumber: normalizedPhone,
-        passwordHash: '', // Will be set later
-      },
-    });
-  }
+  // Note: We don't necessarily create the user here anymore if it's registration
+  // Registration will use the verified status to proceed.
 
   return {
     verified: true,
-    userId: authUser.id,
+    userId: authUser?.id || null,
     message: 'OTP verified successfully',
   };
 };
@@ -411,6 +534,7 @@ export const logoutUser = async (userId) => {
   };
 };
 
+
 /**
  * Get user by ID
  */
@@ -462,6 +586,136 @@ export const getUserById = async (userId) => {
     unit,
   };
 };
+
+/**
+ * Request Password Reset
+ * Resolves identifier (Email/Phone/FCS Code) to user and sends OTP
+ */
+export const requestPasswordReset = async (identifier) => {
+  let authUser = null;
+
+  const idStr = String(identifier);
+
+  // Try finding by Email
+  if (idStr.includes('@')) {
+    authUser = await prisma.authUser.findUnique({
+      where: { email: idStr },
+    });
+  }
+  // Try finding by Phone
+  else if (/^(\+?234|0)\d{10}$/.test(normalizePhoneNumber(idStr))) {
+    authUser = await prisma.authUser.findUnique({
+      where: { phoneNumber: normalizePhoneNumber(idStr) },
+    });
+  }
+  // Try finding by FCS Code
+  else {
+    const member = await prisma.member.findUnique({
+      where: { fcsCode: identifier },
+      include: { authUser: true }
+    });
+    if (member) {
+      authUser = member.authUser;
+    }
+  }
+
+  if (!authUser) {
+    // Return success even if user not found to prevent enumeration, or throw specific error?
+    // For better UX during development/testing, we might throw provided error, but security best practice is generic message.
+    // However, the current codebase throws NotFoundError for other cases.
+    throw new NotFoundError('User not found with provided credentials');
+  }
+
+  // Send OTP to user's registered contact methods
+  return await sendOTP({
+    phoneNumber: authUser.phoneNumber,
+    email: authUser.email,
+    purpose: 'PASSWORD_RESET'
+  });
+};
+
+/**
+ * Reset Password
+ */
+export const resetPassword = async (identifier, code, newPassword) => {
+  // 1. Resolve User again to ensure we verify OTP against correct phone
+  let authUser = null;
+
+  const idStr = String(identifier);
+
+  if (idStr.includes('@')) {
+    authUser = await prisma.authUser.findUnique({ where: { email: idStr } });
+  } else if (/^(\+?234|0)\d{10}$/.test(normalizePhoneNumber(idStr))) {
+    authUser = await prisma.authUser.findUnique({ where: { phoneNumber: normalizePhoneNumber(idStr) } });
+  } else {
+    const member = await prisma.member.findUnique({
+      where: { fcsCode: identifier },
+      include: { authUser: true }
+    });
+    if (member) authUser = member.authUser;
+  }
+
+  if (!authUser) {
+    throw new NotFoundError('User not found');
+  }
+
+  // 2. Verify OTP
+  // verifyOTP throws error if invalid.
+  await verifyOTP({
+    phoneNumber: authUser.phoneNumber,
+    email: authUser.email,
+    code,
+    purpose: 'PASSWORD_RESET'
+  });
+
+  // 3. Hash New Password
+  const passwordHash = await hashPassword(newPassword);
+
+  // 4. Update Password
+  await prisma.authUser.update({
+    where: { id: authUser.id },
+    data: { passwordHash }
+  });
+
+  // 5. Invalidate all sessions (optional but recommended)
+  await prisma.authSession.updateMany({
+    where: { userId: authUser.id },
+    data: { revoked: true, revokedAt: new Date() }
+  });
+
+  return {
+    message: 'Password reset successfully'
+  };
+};
+
+/**
+ * Change Password (Authenticated)
+ */
+export const changePassword = async (userId, currentPassword, newPassword) => {
+  const authUser = await prisma.authUser.findUnique({
+    where: { id: userId }
+  });
+
+  if (!authUser) {
+    throw new NotFoundError('User');
+  }
+
+  const isValid = await comparePassword(currentPassword, authUser.passwordHash);
+  if (!isValid) {
+    throw new ValidationError('Invalid current password');
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  await prisma.authUser.update({
+    where: { id: userId },
+    data: { passwordHash }
+  });
+
+  return {
+    message: 'Password changed successfully'
+  };
+};
 </code></pre>
         </article>
     </section>
@@ -472,13 +726,13 @@ export const getUserById = async (userId) => {
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addCenterAdmin">addCenterAdmin</a></li><li><a href="global.html#addCenterAdminHandler">addCenterAdminHandler</a></li><li><a href="global.html#addGuardian">addGuardian</a></li><li><a href="global.html#addGuardianHandler">addGuardianHandler</a></li><li><a href="global.html#addMemberHandler">addMemberHandler</a></li><li><a href="global.html#addMemberToUnit">addMemberToUnit</a></li><li><a href="global.html#assignCenter">assignCenter</a></li><li><a href="global.html#assignCenterHandler">assignCenterHandler</a></li><li><a href="global.html#assignGroup">assignGroup</a></li><li><a href="global.html#assignGroupHandler">assignGroupHandler</a></li><li><a href="global.html#assignMemberHandler">assignMemberHandler</a></li><li><a href="global.html#assignMemberToGroup">assignMemberToGroup</a></li><li><a href="global.html#assignRoleHandler">assignRoleHandler</a></li><li><a href="global.html#assignRoleToUser">assignRoleToUser</a></li><li><a href="global.html#bulkAssignGroups">bulkAssignGroups</a></li><li><a href="global.html#bulkAssignHandler">bulkAssignHandler</a></li><li><a href="global.html#bulkSyncAttendance">bulkSyncAttendance</a></li><li><a href="global.html#bulkSyncHandler">bulkSyncHandler</a></li><li><a href="global.html#calculateAttendanceRate">calculateAttendanceRate</a></li><li><a href="global.html#calculateCapacityUtilization">calculateCapacityUtilization</a></li><li><a href="global.html#cancelRegistration">cancelRegistration</a></li><li><a href="global.html#cancelRegistrationHandler">cancelRegistrationHandler</a></li><li><a href="global.html#checkDatabaseTables">checkDatabaseTables</a></li><li><a href="global.html#checkExistence">checkExistence</a></li><li><a href="global.html#checkIn">checkIn</a></li><li><a href="global.html#checkInHandler">checkInHandler</a></li><li><a href="global.html#checkOut">checkOut</a></li><li><a href="global.html#checkOutHandler">checkOutHandler</a></li><li><a href="global.html#checkPermissionHandler">checkPermissionHandler</a></li><li><a href="global.html#checkUserExistence">checkUserExistence</a></li><li><a href="global.html#checkUserPermission">checkUserPermission</a></li><li><a href="global.html#cleanupOldLogsHandler">cleanupOldLogsHandler</a></li><li><a href="global.html#clearIdempotencyCache">clearIdempotencyCache</a></li><li><a href="global.html#clearOldAuditLogs">clearOldAuditLogs</a></li><li><a href="global.html#comparePassword">comparePassword</a></li><li><a href="global.html#convertAuditLogsToCSV">convertAuditLogsToCSV</a></li><li><a href="global.html#convertReportToCSV">convertReportToCSV</a></li><li><a href="global.html#correctAttendance">correctAttendance</a></li><li><a href="global.html#correctAttendanceHandler">correctAttendanceHandler</a></li><li><a href="global.html#createAuditLog">createAuditLog</a></li><li><a href="global.html#createCenter">createCenter</a></li><li><a href="global.html#createCenterHandler">createCenterHandler</a></li><li><a href="global.html#createEvent">createEvent</a></li><li><a href="global.html#createEventHandler">createEventHandler</a></li><li><a href="global.html#createGroup">createGroup</a></li><li><a href="global.html#createGroupHandler">createGroupHandler</a></li><li><a href="global.html#createMember">createMember</a></li><li><a href="global.html#createMemberHandler">createMemberHandler</a></li><li><a href="global.html#createNotificationTrigger">createNotificationTrigger</a></li><li><a href="global.html#createPredefinedRoles">createPredefinedRoles</a></li><li><a href="global.html#createRateLimiters">createRateLimiters</a></li><li><a href="global.html#createRegistration">createRegistration</a></li><li><a href="global.html#createRegistrationHandler">createRegistrationHandler</a></li><li><a href="global.html#createRole">createRole</a></li><li><a href="global.html#createRoleHandler">createRoleHandler</a></li><li><a href="global.html#createTriggerHandler">createTriggerHandler</a></li><li><a href="global.html#createUnit">createUnit</a></li><li><a href="global.html#createUnitHandler">createUnitHandler</a></li><li><a href="global.html#deactivateCenter">deactivateCenter</a></li><li><a href="global.html#deactivateCenterHandler">deactivateCenterHandler</a></li><li><a href="global.html#deactivateGroup">deactivateGroup</a></li><li><a href="global.html#deactivateGroupHandler">deactivateGroupHandler</a></li><li><a href="global.html#deactivateMember">deactivateMember</a></li><li><a href="global.html#deactivateMemberHandler">deactivateMemberHandler</a></li><li><a href="global.html#deactivateRole">deactivateRole</a></li><li><a href="global.html#deactivateRoleHandler">deactivateRoleHandler</a></li><li><a href="global.html#deactivateUnit">deactivateUnit</a></li><li><a href="global.html#deactivateUnitHandler">deactivateUnitHandler</a></li><li><a href="global.html#downloadTagHandler">downloadTagHandler</a></li><li><a href="global.html#exportAuditLogs">exportAuditLogs</a></li><li><a href="global.html#exportAuditLogsHandler">exportAuditLogsHandler</a></li><li><a href="global.html#exportEventReport">exportEventReport</a></li><li><a href="global.html#exportEventReportHandler">exportEventReportHandler</a></li><li><a href="global.html#formatPaginatedResponse">formatPaginatedResponse</a></li><li><a href="global.html#generateAttendanceCode">generateAttendanceCode</a></li><li><a href="global.html#generateCodeHandler">generateCodeHandler</a></li><li><a href="global.html#generateFCSCode">generateFCSCode</a></li><li><a href="global.html#generateOTP">generateOTP</a></li><li><a href="global.html#generateTagPdf">generateTagPdf</a></li><li><a href="global.html#generateToken">generateToken</a></li><li><a href="global.html#generateUUID">generateUUID</a></li><li><a href="global.html#getAttendanceSummaryHandler">getAttendanceSummaryHandler</a></li><li><a href="global.html#getAuditLogsByRange">getAuditLogsByRange</a></li><li><a href="global.html#getAuditLogsHandler">getAuditLogsHandler</a></li><li><a href="global.html#getCenterAnalytics">getCenterAnalytics</a></li><li><a href="global.html#getCenterAnalyticsHandler">getCenterAnalyticsHandler</a></li><li><a href="global.html#getCenterAttendance">getCenterAttendance</a></li><li><a href="global.html#getCenterAttendanceHandler">getCenterAttendanceHandler</a></li><li><a href="global.html#getCenterById">getCenterById</a></li><li><a href="global.html#getCenterHandler">getCenterHandler</a></li><li><a href="global.html#getCenterStatistics">getCenterStatistics</a></li><li><a href="global.html#getCenterStatisticsHandler">getCenterStatisticsHandler</a></li><li><a href="global.html#getCentersByState">getCentersByState</a></li><li><a href="global.html#getChildUnits">getChildUnits</a></li><li><a href="global.html#getChildUnitsHandler">getChildUnitsHandler</a></li><li><a href="global.html#getComplianceReport">getComplianceReport</a></li><li><a href="global.html#getComplianceReportHandler">getComplianceReportHandler</a></li><li><a href="global.html#getCurrentUser">getCurrentUser</a></li><li><a href="global.html#getDashboardHandler">getDashboardHandler</a></li><li><a href="global.html#getDashboardSummary">getDashboardSummary</a></li><li><a href="global.html#getDataChangeHistory">getDataChangeHistory</a></li><li><a href="global.html#getDataChangeHistoryHandler">getDataChangeHistoryHandler</a></li><li><a href="global.html#getDateRangeQuery">getDateRangeQuery</a></li><li><a href="global.html#getEntityAuditTrail">getEntityAuditTrail</a></li><li><a href="global.html#getEntityAuditTrailHandler">getEntityAuditTrailHandler</a></li><li><a href="global.html#getEventAnalytics">getEventAnalytics</a></li><li><a href="global.html#getEventAnalyticsHandler">getEventAnalyticsHandler</a></li><li><a href="global.html#getEventAttendance">getEventAttendance</a></li><li><a href="global.html#getEventAttendanceHandler">getEventAttendanceHandler</a></li><li><a href="global.html#getEventById">getEventById</a></li><li><a href="global.html#getEventHandler">getEventHandler</a></li><li><a href="global.html#getEventRegistrationsHandler">getEventRegistrationsHandler</a></li><li><a href="global.html#getEventStatistics">getEventStatistics</a></li><li><a href="global.html#getEventStatisticsHandler">getEventStatisticsHandler</a></li><li><a href="global.html#getGlobalRegistrationsStats">getGlobalRegistrationsStats</a></li><li><a href="global.html#getGlobalRegistrationsStatsHandler">getGlobalRegistrationsStatsHandler</a></li><li><a href="global.html#getGroupById">getGroupById</a></li><li><a href="global.html#getGroupHandler">getGroupHandler</a></li><li><a href="global.html#getGroupMembers">getGroupMembers</a></li><li><a href="global.html#getGroupMembersHandler">getGroupMembersHandler</a></li><li><a href="global.html#getGroupStatistics">getGroupStatistics</a></li><li><a href="global.html#getGroupStatsHandler">getGroupStatsHandler</a></li><li><a href="global.html#getHierarchyHandler">getHierarchyHandler</a></li><li><a href="global.html#getHistoryHandler">getHistoryHandler</a></li><li><a href="global.html#getMemberAttendance">getMemberAttendance</a></li><li><a href="global.html#getMemberAttendanceHandler">getMemberAttendanceHandler</a></li><li><a href="global.html#getMemberAttendanceReport">getMemberAttendanceReport</a></li><li><a href="global.html#getMemberAttendanceReportHandler">getMemberAttendanceReportHandler</a></li><li><a href="global.html#getMemberAttendanceSummary">getMemberAttendanceSummary</a></li><li><a href="global.html#getMemberByAuthId">getMemberByAuthId</a></li><li><a href="global.html#getMemberByCodeHandler">getMemberByCodeHandler</a></li><li><a href="global.html#getMemberByFCSCode">getMemberByFCSCode</a></li><li><a href="global.html#getMemberById">getMemberById</a></li><li><a href="global.html#getMemberHandler">getMemberHandler</a></li><li><a href="global.html#getMemberRegistrations">getMemberRegistrations</a></li><li><a href="global.html#getMemberRegistrationsHandler">getMemberRegistrationsHandler</a></li><li><a href="global.html#getNotificationHistory">getNotificationHistory</a></li><li><a href="global.html#getNotificationTrigger">getNotificationTrigger</a></li><li><a href="global.html#getPaginationParams">getPaginationParams</a></li><li><a href="global.html#getPermissionGroups">getPermissionGroups</a></li><li><a href="global.html#getPermissionGroupsHandler">getPermissionGroupsHandler</a></li><li><a href="global.html#getRegistrarStatisticsHandler">getRegistrarStatisticsHandler</a></li><li><a href="global.html#getRegistrationById">getRegistrationById</a></li><li><a href="global.html#getRegistrationHandler">getRegistrationHandler</a></li><li><a href="global.html#getRegistrationsByEvent">getRegistrationsByEvent</a></li><li><a href="global.html#getRoleById">getRoleById</a></li><li><a href="global.html#getRoleHandler">getRoleHandler</a></li><li><a href="global.html#getRoleUsers">getRoleUsers</a></li><li><a href="global.html#getRoleUsersHandler">getRoleUsersHandler</a></li><li><a href="global.html#getStateAnalytics">getStateAnalytics</a></li><li><a href="global.html#getStateAnalyticsHandler">getStateAnalyticsHandler</a></li><li><a href="global.html#getTriggerHandler">getTriggerHandler</a></li><li><a href="global.html#getUnitById">getUnitById</a></li><li><a href="global.html#getUnitHandler">getUnitHandler</a></li><li><a href="global.html#getUnitHierarchy">getUnitHierarchy</a></li><li><a href="global.html#getUnitMembers">getUnitMembers</a></li><li><a href="global.html#getUnitMembersHandler">getUnitMembersHandler</a></li><li><a href="global.html#getUnitStatistics">getUnitStatistics</a></li><li><a href="global.html#getUnitStatsHandler">getUnitStatsHandler</a></li><li><a href="global.html#getUserAuditTrail">getUserAuditTrail</a></li><li><a href="global.html#getUserAuditTrailHandler">getUserAuditTrailHandler</a></li><li><a href="global.html#getUserById">getUserById</a></li><li><a href="global.html#getUserPermissions">getUserPermissions</a></li><li><a href="global.html#getUserPermissionsHandler">getUserPermissionsHandler</a></li><li><a href="global.html#getUserRoles">getUserRoles</a></li><li><a href="global.html#getUserRolesHandler">getUserRolesHandler</a></li><li><a href="global.html#hashPassword">hashPassword</a></li><li><a href="global.html#initPredefinedRolesHandler">initPredefinedRolesHandler</a></li><li><a href="global.html#initializeDatabase">initializeDatabase</a></li><li><a href="global.html#isCenterAdmin">isCenterAdmin</a></li><li><a href="global.html#isDateInFuture">isDateInFuture</a></li><li><a href="global.html#isDateInPast">isDateInPast</a></li><li><a href="global.html#isEventHappening">isEventHappening</a></li><li><a href="global.html#isRegistrationOpen">isRegistrationOpen</a></li><li><a href="global.html#listActiveCenters">listActiveCenters</a></li><li><a href="global.html#listActiveCentersHandler">listActiveCentersHandler</a></li><li><a href="global.html#listCentersByEvent">listCentersByEvent</a></li><li><a href="global.html#listCentersHandler">listCentersHandler</a></li><li><a href="global.html#listEvents">listEvents</a></li><li><a href="global.html#listEventsHandler">listEventsHandler</a></li><li><a href="global.html#listGroupsByEvent">listGroupsByEvent</a></li><li><a href="global.html#listGroupsHandler">listGroupsHandler</a></li><li><a href="global.html#listMembers">listMembers</a></li><li><a href="global.html#listMembersHandler">listMembersHandler</a></li><li><a href="global.html#listNotificationTriggers">listNotificationTriggers</a></li><li><a href="global.html#listRegistrations">listRegistrations</a></li><li><a href="global.html#listRegistrationsHandler">listRegistrationsHandler</a></li><li><a href="global.html#listRoles">listRoles</a></li><li><a href="global.html#listRolesHandler">listRolesHandler</a></li><li><a href="global.html#listTriggersHandler">listTriggersHandler</a></li><li><a href="global.html#listUnits">listUnits</a></li><li><a href="global.html#listUnitsHandler">listUnitsHandler</a></li><li><a href="global.html#logEntityChange">logEntityChange</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#loginUser">loginUser</a></li><li><a href="global.html#logout">logout</a></li><li><a href="global.html#logoutUser">logoutUser</a></li><li><a href="global.html#markAttendance">markAttendance</a></li><li><a href="global.html#markAttendanceHandler">markAttendanceHandler</a></li><li><a href="global.html#markDeliveredHandler">markDeliveredHandler</a></li><li><a href="global.html#markNotificationAsDelivered">markNotificationAsDelivered</a></li><li><a href="global.html#normalizePhoneNumber">normalizePhoneNumber</a></li><li><a href="global.html#publishEvent">publishEvent</a></li><li><a href="global.html#publishEventHandler">publishEventHandler</a></li><li><a href="global.html#queueNotificationJob">queueNotificationJob</a></li><li><a href="global.html#rateLimitErrorHandler">rateLimitErrorHandler</a></li><li><a href="global.html#refreshToken">refreshToken</a></li><li><a href="global.html#refreshTokenHandler">refreshTokenHandler</a></li><li><a href="global.html#register">register</a></li><li><a href="global.html#registerUser">registerUser</a></li><li><a href="global.html#removeCenterAdmin">removeCenterAdmin</a></li><li><a href="global.html#removeCenterAdminHandler">removeCenterAdminHandler</a></li><li><a href="global.html#removeGuardian">removeGuardian</a></li><li><a href="global.html#removeGuardianHandler">removeGuardianHandler</a></li><li><a href="global.html#removeMemberFromGroup">removeMemberFromGroup</a></li><li><a href="global.html#removeMemberFromUnit">removeMemberFromUnit</a></li><li><a href="global.html#removeMemberHandler">removeMemberHandler</a></li><li><a href="global.html#removeRoleFromUser">removeRoleFromUser</a></li><li><a href="global.html#removeRoleHandler">removeRoleHandler</a></li><li><a href="global.html#requestTimeout">requestTimeout</a></li><li><a href="global.html#searchMembers">searchMembers</a></li><li><a href="global.html#searchMembersHandler">searchMembersHandler</a></li><li><a href="global.html#sendBatchHandler">sendBatchHandler</a></li><li><a href="global.html#sendBatchNotifications">sendBatchNotifications</a></li><li><a href="global.html#sendNotification">sendNotification</a></li><li><a href="global.html#sendNotificationHandler">sendNotificationHandler</a></li><li><a href="global.html#sendOTP">sendOTP</a></li><li><a href="global.html#sendOTPHandler">sendOTPHandler</a></li><li><a href="global.html#socketTimeout">socketTimeout</a></li><li><a href="global.html#testDatabaseConnection">testDatabaseConnection</a></li><li><a href="global.html#triggerCenterAssignmentHandler">triggerCenterAssignmentHandler</a></li><li><a href="global.html#triggerCenterAssignmentNotifications">triggerCenterAssignmentNotifications</a></li><li><a href="global.html#triggerEventReminderHandler">triggerEventReminderHandler</a></li><li><a href="global.html#triggerEventReminderNotifications">triggerEventReminderNotifications</a></li><li><a href="global.html#triggerGroupAssignmentHandler">triggerGroupAssignmentHandler</a></li><li><a href="global.html#triggerGroupAssignmentNotifications">triggerGroupAssignmentNotifications</a></li><li><a href="global.html#triggerRegistrationHandler">triggerRegistrationHandler</a></li><li><a href="global.html#triggerRegistrationNotifications">triggerRegistrationNotifications</a></li><li><a href="global.html#updateCenter">updateCenter</a></li><li><a href="global.html#updateCenterHandler">updateCenterHandler</a></li><li><a href="global.html#updateEvent">updateEvent</a></li><li><a href="global.html#updateEventHandler">updateEventHandler</a></li><li><a href="global.html#updateEventSettings">updateEventSettings</a></li><li><a href="global.html#updateEventSettingsHandler">updateEventSettingsHandler</a></li><li><a href="global.html#updateGroup">updateGroup</a></li><li><a href="global.html#updateGroupHandler">updateGroupHandler</a></li><li><a href="global.html#updateMember">updateMember</a></li><li><a href="global.html#updateMemberHandler">updateMemberHandler</a></li><li><a href="global.html#updateNotificationTrigger">updateNotificationTrigger</a></li><li><a href="global.html#updateProfileHandler">updateProfileHandler</a></li><li><a href="global.html#updateRegistrationStatus">updateRegistrationStatus</a></li><li><a href="global.html#updateRegistrationStatusHandler">updateRegistrationStatusHandler</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateRoleHandler">updateRoleHandler</a></li><li><a href="global.html#updateTriggerHandler">updateTriggerHandler</a></li><li><a href="global.html#updateUnit">updateUnit</a></li><li><a href="global.html#updateUnitHandler">updateUnitHandler</a></li><li><a href="global.html#validateAttendanceCode">validateAttendanceCode</a></li><li><a href="global.html#validateCodeHandler">validateCodeHandler</a></li><li><a href="global.html#verifyAttendance">verifyAttendance</a></li><li><a href="global.html#verifyAttendanceHandler">verifyAttendanceHandler</a></li><li><a href="global.html#verifyOTP">verifyOTP</a></li><li><a href="global.html#verifyOTPHandler">verifyOTPHandler</a></li><li><a href="global.html#verifyToken">verifyToken</a></li><li><a href="global.html#withTimeout">withTimeout</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addCenterAdmin">addCenterAdmin</a></li><li><a href="global.html#addCenterAdminHandler">addCenterAdminHandler</a></li><li><a href="global.html#addGuardian">addGuardian</a></li><li><a href="global.html#addGuardianHandler">addGuardianHandler</a></li><li><a href="global.html#addMemberHandler">addMemberHandler</a></li><li><a href="global.html#addMemberToUnit">addMemberToUnit</a></li><li><a href="global.html#assignCenter">assignCenter</a></li><li><a href="global.html#assignCenterHandler">assignCenterHandler</a></li><li><a href="global.html#assignGroup">assignGroup</a></li><li><a href="global.html#assignGroupHandler">assignGroupHandler</a></li><li><a href="global.html#assignMemberHandler">assignMemberHandler</a></li><li><a href="global.html#assignMemberToGroup">assignMemberToGroup</a></li><li><a href="global.html#assignRoleHandler">assignRoleHandler</a></li><li><a href="global.html#assignRoleToUser">assignRoleToUser</a></li><li><a href="global.html#bulkAssignGroups">bulkAssignGroups</a></li><li><a href="global.html#bulkAssignHandler">bulkAssignHandler</a></li><li><a href="global.html#bulkSyncAttendance">bulkSyncAttendance</a></li><li><a href="global.html#bulkSyncHandler">bulkSyncHandler</a></li><li><a href="global.html#calculateAttendanceRate">calculateAttendanceRate</a></li><li><a href="global.html#cancelRegistration">cancelRegistration</a></li><li><a href="global.html#cancelRegistrationHandler">cancelRegistrationHandler</a></li><li><a href="global.html#changePassword">changePassword</a></li><li><a href="global.html#changePasswordHandler">changePasswordHandler</a></li><li><a href="global.html#checkDatabaseTables">checkDatabaseTables</a></li><li><a href="global.html#checkExistence">checkExistence</a></li><li><a href="global.html#checkIn">checkIn</a></li><li><a href="global.html#checkInHandler">checkInHandler</a></li><li><a href="global.html#checkOut">checkOut</a></li><li><a href="global.html#checkOutHandler">checkOutHandler</a></li><li><a href="global.html#checkPermissionHandler">checkPermissionHandler</a></li><li><a href="global.html#checkUserExistence">checkUserExistence</a></li><li><a href="global.html#checkUserPermission">checkUserPermission</a></li><li><a href="global.html#cleanupOldLogsHandler">cleanupOldLogsHandler</a></li><li><a href="global.html#clearIdempotencyCache">clearIdempotencyCache</a></li><li><a href="global.html#clearOldAuditLogs">clearOldAuditLogs</a></li><li><a href="global.html#cloudinaryDelete">cloudinaryDelete</a></li><li><a href="global.html#cloudinaryUpload">cloudinaryUpload</a></li><li><a href="global.html#cloudinaryUploadAudio">cloudinaryUploadAudio</a></li><li><a href="global.html#cloudinaryUploadDocument">cloudinaryUploadDocument</a></li><li><a href="global.html#cloudinaryUploadImage">cloudinaryUploadImage</a></li><li><a href="global.html#cloudinaryUploadVideo">cloudinaryUploadVideo</a></li><li><a href="global.html#comparePassword">comparePassword</a></li><li><a href="global.html#convertAuditLogsToCSV">convertAuditLogsToCSV</a></li><li><a href="global.html#convertReportToCSV">convertReportToCSV</a></li><li><a href="global.html#correctAttendance">correctAttendance</a></li><li><a href="global.html#correctAttendanceHandler">correctAttendanceHandler</a></li><li><a href="global.html#createAuditLog">createAuditLog</a></li><li><a href="global.html#createCenter">createCenter</a></li><li><a href="global.html#createCenterHandler">createCenterHandler</a></li><li><a href="global.html#createEvent">createEvent</a></li><li><a href="global.html#createEventHandler">createEventHandler</a></li><li><a href="global.html#createGroup">createGroup</a></li><li><a href="global.html#createGroupHandler">createGroupHandler</a></li><li><a href="global.html#createMember">createMember</a></li><li><a href="global.html#createMemberHandler">createMemberHandler</a></li><li><a href="global.html#createNotificationTrigger">createNotificationTrigger</a></li><li><a href="global.html#createPredefinedRoles">createPredefinedRoles</a></li><li><a href="global.html#createRateLimiters">createRateLimiters</a></li><li><a href="global.html#createRegistration">createRegistration</a></li><li><a href="global.html#createRegistrationHandler">createRegistrationHandler</a></li><li><a href="global.html#createRole">createRole</a></li><li><a href="global.html#createRoleHandler">createRoleHandler</a></li><li><a href="global.html#createTriggerHandler">createTriggerHandler</a></li><li><a href="global.html#createUnit">createUnit</a></li><li><a href="global.html#createUnitHandler">createUnitHandler</a></li><li><a href="global.html#deactivateCenter">deactivateCenter</a></li><li><a href="global.html#deactivateCenterHandler">deactivateCenterHandler</a></li><li><a href="global.html#deactivateGroup">deactivateGroup</a></li><li><a href="global.html#deactivateGroupHandler">deactivateGroupHandler</a></li><li><a href="global.html#deactivateMember">deactivateMember</a></li><li><a href="global.html#deactivateMemberHandler">deactivateMemberHandler</a></li><li><a href="global.html#deactivateRole">deactivateRole</a></li><li><a href="global.html#deactivateRoleHandler">deactivateRoleHandler</a></li><li><a href="global.html#deactivateUnit">deactivateUnit</a></li><li><a href="global.html#deactivateUnitHandler">deactivateUnitHandler</a></li><li><a href="global.html#downloadTagHandler">downloadTagHandler</a></li><li><a href="global.html#exportAuditLogs">exportAuditLogs</a></li><li><a href="global.html#exportAuditLogsHandler">exportAuditLogsHandler</a></li><li><a href="global.html#exportEventReport">exportEventReport</a></li><li><a href="global.html#exportEventReportHandler">exportEventReportHandler</a></li><li><a href="global.html#forgotPasswordHandler">forgotPasswordHandler</a></li><li><a href="global.html#formatPaginatedResponse">formatPaginatedResponse</a></li><li><a href="global.html#generateAttendanceCode">generateAttendanceCode</a></li><li><a href="global.html#generateCodeHandler">generateCodeHandler</a></li><li><a href="global.html#generateFCSCode">generateFCSCode</a></li><li><a href="global.html#generateOTP">generateOTP</a></li><li><a href="global.html#generateSignedUrl">generateSignedUrl</a></li><li><a href="global.html#generateTagPdf">generateTagPdf</a></li><li><a href="global.html#generateToken">generateToken</a></li><li><a href="global.html#generateUUID">generateUUID</a></li><li><a href="global.html#getAttendanceSummaryHandler">getAttendanceSummaryHandler</a></li><li><a href="global.html#getAuditLogsByRange">getAuditLogsByRange</a></li><li><a href="global.html#getAuditLogsHandler">getAuditLogsHandler</a></li><li><a href="global.html#getCenterAnalytics">getCenterAnalytics</a></li><li><a href="global.html#getCenterAnalyticsHandler">getCenterAnalyticsHandler</a></li><li><a href="global.html#getCenterAttendance">getCenterAttendance</a></li><li><a href="global.html#getCenterAttendanceHandler">getCenterAttendanceHandler</a></li><li><a href="global.html#getCenterById">getCenterById</a></li><li><a href="global.html#getCenterHandler">getCenterHandler</a></li><li><a href="global.html#getCenterStatistics">getCenterStatistics</a></li><li><a href="global.html#getCenterStatisticsHandler">getCenterStatisticsHandler</a></li><li><a href="global.html#getCentersByState">getCentersByState</a></li><li><a href="global.html#getChildUnits">getChildUnits</a></li><li><a href="global.html#getChildUnitsHandler">getChildUnitsHandler</a></li><li><a href="global.html#getComplianceReport">getComplianceReport</a></li><li><a href="global.html#getComplianceReportHandler">getComplianceReportHandler</a></li><li><a href="global.html#getCurrentUser">getCurrentUser</a></li><li><a href="global.html#getDashboardHandler">getDashboardHandler</a></li><li><a href="global.html#getDashboardSummary">getDashboardSummary</a></li><li><a href="global.html#getDataChangeHistory">getDataChangeHistory</a></li><li><a href="global.html#getDataChangeHistoryHandler">getDataChangeHistoryHandler</a></li><li><a href="global.html#getDateRangeQuery">getDateRangeQuery</a></li><li><a href="global.html#getEntityAuditTrail">getEntityAuditTrail</a></li><li><a href="global.html#getEntityAuditTrailHandler">getEntityAuditTrailHandler</a></li><li><a href="global.html#getEventAnalytics">getEventAnalytics</a></li><li><a href="global.html#getEventAnalyticsHandler">getEventAnalyticsHandler</a></li><li><a href="global.html#getEventAttendance">getEventAttendance</a></li><li><a href="global.html#getEventAttendanceHandler">getEventAttendanceHandler</a></li><li><a href="global.html#getEventById">getEventById</a></li><li><a href="global.html#getEventHandler">getEventHandler</a></li><li><a href="global.html#getEventRegistrationsHandler">getEventRegistrationsHandler</a></li><li><a href="global.html#getEventStatistics">getEventStatistics</a></li><li><a href="global.html#getEventStatisticsHandler">getEventStatisticsHandler</a></li><li><a href="global.html#getGlobalRegistrationsStats">getGlobalRegistrationsStats</a></li><li><a href="global.html#getGlobalRegistrationsStatsHandler">getGlobalRegistrationsStatsHandler</a></li><li><a href="global.html#getGroupById">getGroupById</a></li><li><a href="global.html#getGroupHandler">getGroupHandler</a></li><li><a href="global.html#getGroupMembers">getGroupMembers</a></li><li><a href="global.html#getGroupMembersHandler">getGroupMembersHandler</a></li><li><a href="global.html#getGroupStatistics">getGroupStatistics</a></li><li><a href="global.html#getGroupStatsHandler">getGroupStatsHandler</a></li><li><a href="global.html#getHierarchyHandler">getHierarchyHandler</a></li><li><a href="global.html#getHistoryHandler">getHistoryHandler</a></li><li><a href="global.html#getMemberAttendance">getMemberAttendance</a></li><li><a href="global.html#getMemberAttendanceHandler">getMemberAttendanceHandler</a></li><li><a href="global.html#getMemberAttendanceReport">getMemberAttendanceReport</a></li><li><a href="global.html#getMemberAttendanceReportHandler">getMemberAttendanceReportHandler</a></li><li><a href="global.html#getMemberAttendanceSummary">getMemberAttendanceSummary</a></li><li><a href="global.html#getMemberByAuthId">getMemberByAuthId</a></li><li><a href="global.html#getMemberByCodeHandler">getMemberByCodeHandler</a></li><li><a href="global.html#getMemberByFCSCode">getMemberByFCSCode</a></li><li><a href="global.html#getMemberById">getMemberById</a></li><li><a href="global.html#getMemberHandler">getMemberHandler</a></li><li><a href="global.html#getMemberRegistrations">getMemberRegistrations</a></li><li><a href="global.html#getMemberRegistrationsHandler">getMemberRegistrationsHandler</a></li><li><a href="global.html#getNotificationHistory">getNotificationHistory</a></li><li><a href="global.html#getNotificationTrigger">getNotificationTrigger</a></li><li><a href="global.html#getPaginationParams">getPaginationParams</a></li><li><a href="global.html#getPermissionGroups">getPermissionGroups</a></li><li><a href="global.html#getPermissionGroupsHandler">getPermissionGroupsHandler</a></li><li><a href="global.html#getRegistrarStatisticsHandler">getRegistrarStatisticsHandler</a></li><li><a href="global.html#getRegistrationById">getRegistrationById</a></li><li><a href="global.html#getRegistrationHandler">getRegistrationHandler</a></li><li><a href="global.html#getRegistrationsByEvent">getRegistrationsByEvent</a></li><li><a href="global.html#getRoleById">getRoleById</a></li><li><a href="global.html#getRoleHandler">getRoleHandler</a></li><li><a href="global.html#getRoleUsers">getRoleUsers</a></li><li><a href="global.html#getRoleUsersHandler">getRoleUsersHandler</a></li><li><a href="global.html#getStateAnalytics">getStateAnalytics</a></li><li><a href="global.html#getStateAnalyticsHandler">getStateAnalyticsHandler</a></li><li><a href="global.html#getTriggerHandler">getTriggerHandler</a></li><li><a href="global.html#getUnitById">getUnitById</a></li><li><a href="global.html#getUnitHandler">getUnitHandler</a></li><li><a href="global.html#getUnitHierarchy">getUnitHierarchy</a></li><li><a href="global.html#getUnitMembers">getUnitMembers</a></li><li><a href="global.html#getUnitMembersHandler">getUnitMembersHandler</a></li><li><a href="global.html#getUnitStatistics">getUnitStatistics</a></li><li><a href="global.html#getUnitStatsHandler">getUnitStatsHandler</a></li><li><a href="global.html#getUserAuditTrail">getUserAuditTrail</a></li><li><a href="global.html#getUserAuditTrailHandler">getUserAuditTrailHandler</a></li><li><a href="global.html#getUserById">getUserById</a></li><li><a href="global.html#getUserPermissions">getUserPermissions</a></li><li><a href="global.html#getUserPermissionsHandler">getUserPermissionsHandler</a></li><li><a href="global.html#getUserRoles">getUserRoles</a></li><li><a href="global.html#getUserRolesHandler">getUserRolesHandler</a></li><li><a href="global.html#handleProfileImageUpload">handleProfileImageUpload</a></li><li><a href="global.html#hashPassword">hashPassword</a></li><li><a href="global.html#initPredefinedRolesHandler">initPredefinedRolesHandler</a></li><li><a href="global.html#initializeDatabase">initializeDatabase</a></li><li><a href="global.html#isCenterAdmin">isCenterAdmin</a></li><li><a href="global.html#isDateInFuture">isDateInFuture</a></li><li><a href="global.html#isDateInPast">isDateInPast</a></li><li><a href="global.html#isEventHappening">isEventHappening</a></li><li><a href="global.html#isRegistrationOpen">isRegistrationOpen</a></li><li><a href="global.html#listActiveCenters">listActiveCenters</a></li><li><a href="global.html#listActiveCentersHandler">listActiveCentersHandler</a></li><li><a href="global.html#listCentersByEvent">listCentersByEvent</a></li><li><a href="global.html#listCentersHandler">listCentersHandler</a></li><li><a href="global.html#listEvents">listEvents</a></li><li><a href="global.html#listEventsHandler">listEventsHandler</a></li><li><a href="global.html#listGroupsByEvent">listGroupsByEvent</a></li><li><a href="global.html#listGroupsHandler">listGroupsHandler</a></li><li><a href="global.html#listMembers">listMembers</a></li><li><a href="global.html#listMembersHandler">listMembersHandler</a></li><li><a href="global.html#listNotificationTriggers">listNotificationTriggers</a></li><li><a href="global.html#listRegistrations">listRegistrations</a></li><li><a href="global.html#listRegistrationsHandler">listRegistrationsHandler</a></li><li><a href="global.html#listRoles">listRoles</a></li><li><a href="global.html#listRolesHandler">listRolesHandler</a></li><li><a href="global.html#listTriggersHandler">listTriggersHandler</a></li><li><a href="global.html#listUnits">listUnits</a></li><li><a href="global.html#listUnitsHandler">listUnitsHandler</a></li><li><a href="global.html#logEntityChange">logEntityChange</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#loginUser">loginUser</a></li><li><a href="global.html#logout">logout</a></li><li><a href="global.html#logoutUser">logoutUser</a></li><li><a href="global.html#markAttendance">markAttendance</a></li><li><a href="global.html#markAttendanceHandler">markAttendanceHandler</a></li><li><a href="global.html#markDeliveredHandler">markDeliveredHandler</a></li><li><a href="global.html#markNotificationAsDelivered">markNotificationAsDelivered</a></li><li><a href="global.html#normalizePhoneNumber">normalizePhoneNumber</a></li><li><a href="global.html#publishEvent">publishEvent</a></li><li><a href="global.html#publishEventHandler">publishEventHandler</a></li><li><a href="global.html#queueNotificationJob">queueNotificationJob</a></li><li><a href="global.html#rateLimitErrorHandler">rateLimitErrorHandler</a></li><li><a href="global.html#refreshToken">refreshToken</a></li><li><a href="global.html#refreshTokenHandler">refreshTokenHandler</a></li><li><a href="global.html#register">register</a></li><li><a href="global.html#registerUser">registerUser</a></li><li><a href="global.html#removeCenterAdmin">removeCenterAdmin</a></li><li><a href="global.html#removeCenterAdminHandler">removeCenterAdminHandler</a></li><li><a href="global.html#removeGuardian">removeGuardian</a></li><li><a href="global.html#removeGuardianHandler">removeGuardianHandler</a></li><li><a href="global.html#removeMemberFromGroup">removeMemberFromGroup</a></li><li><a href="global.html#removeMemberFromUnit">removeMemberFromUnit</a></li><li><a href="global.html#removeMemberHandler">removeMemberHandler</a></li><li><a href="global.html#removeRoleFromUser">removeRoleFromUser</a></li><li><a href="global.html#removeRoleHandler">removeRoleHandler</a></li><li><a href="global.html#requestPasswordReset">requestPasswordReset</a></li><li><a href="global.html#requestTimeout">requestTimeout</a></li><li><a href="global.html#resetPassword">resetPassword</a></li><li><a href="global.html#resetPasswordHandler">resetPasswordHandler</a></li><li><a href="global.html#searchMembers">searchMembers</a></li><li><a href="global.html#searchMembersHandler">searchMembersHandler</a></li><li><a href="global.html#sendBatchHandler">sendBatchHandler</a></li><li><a href="global.html#sendBatchNotifications">sendBatchNotifications</a></li><li><a href="global.html#sendMail">sendMail</a></li><li><a href="global.html#sendNotification">sendNotification</a></li><li><a href="global.html#sendNotificationHandler">sendNotificationHandler</a></li><li><a href="global.html#sendOTP">sendOTP</a></li><li><a href="global.html#socketTimeout">socketTimeout</a></li><li><a href="global.html#testDatabaseConnection">testDatabaseConnection</a></li><li><a href="global.html#triggerCenterAssignmentHandler">triggerCenterAssignmentHandler</a></li><li><a href="global.html#triggerCenterAssignmentNotifications">triggerCenterAssignmentNotifications</a></li><li><a href="global.html#triggerEventReminderHandler">triggerEventReminderHandler</a></li><li><a href="global.html#triggerEventReminderNotifications">triggerEventReminderNotifications</a></li><li><a href="global.html#triggerGroupAssignmentHandler">triggerGroupAssignmentHandler</a></li><li><a href="global.html#triggerGroupAssignmentNotifications">triggerGroupAssignmentNotifications</a></li><li><a href="global.html#triggerRegistrationHandler">triggerRegistrationHandler</a></li><li><a href="global.html#triggerRegistrationNotifications">triggerRegistrationNotifications</a></li><li><a href="global.html#updateCenter">updateCenter</a></li><li><a href="global.html#updateCenterHandler">updateCenterHandler</a></li><li><a href="global.html#updateEvent">updateEvent</a></li><li><a href="global.html#updateEventHandler">updateEventHandler</a></li><li><a href="global.html#updateEventSettings">updateEventSettings</a></li><li><a href="global.html#updateEventSettingsHandler">updateEventSettingsHandler</a></li><li><a href="global.html#updateGroup">updateGroup</a></li><li><a href="global.html#updateGroupHandler">updateGroupHandler</a></li><li><a href="global.html#updateMember">updateMember</a></li><li><a href="global.html#updateMemberHandler">updateMemberHandler</a></li><li><a href="global.html#updateNotificationTrigger">updateNotificationTrigger</a></li><li><a href="global.html#updateProfileHandler">updateProfileHandler</a></li><li><a href="global.html#updateRegistrationStatus">updateRegistrationStatus</a></li><li><a href="global.html#updateRegistrationStatusHandler">updateRegistrationStatusHandler</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateRoleHandler">updateRoleHandler</a></li><li><a href="global.html#updateTriggerHandler">updateTriggerHandler</a></li><li><a href="global.html#updateUnit">updateUnit</a></li><li><a href="global.html#updateUnitHandler">updateUnitHandler</a></li><li><a href="global.html#validateAttendanceCode">validateAttendanceCode</a></li><li><a href="global.html#validateCodeHandler">validateCodeHandler</a></li><li><a href="global.html#verifyAttendance">verifyAttendance</a></li><li><a href="global.html#verifyAttendanceHandler">verifyAttendanceHandler</a></li><li><a href="global.html#verifyOTP">verifyOTP</a></li><li><a href="global.html#verifyOTPHandler">verifyOTPHandler</a></li><li><a href="global.html#verifyToken">verifyToken</a></li><li><a href="global.html#withTimeout">withTimeout</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Jan 09 2026 10:10:19 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Wed Jan 14 2026 03:49:44 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> prettyPrint(); </script>
