@@ -286,7 +286,7 @@ model Event {
   registrationStart DateTime
   registrationEnd   DateTime
   participationMode String            // "ONLINE" | "ONSITE" | "HYBRID"
-  isPublished       Boolean           @default(false)
+  isPublished       Boolean           @default(true)
   imageUrl          String?
   createdBy         String
   createdByUser     AuthUser          @relation("EventCreatedBy", fields: [createdBy], references: [id])

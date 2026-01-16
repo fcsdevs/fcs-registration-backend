@@ -67,6 +67,7 @@ export const createEvent = async (data, userId) => {
       participationMode,
       imageUrl: imageUrl || null,
       createdBy: userId,
+      isPublished: true, // Auto-publish events on creation
     },
   });
 
@@ -168,26 +169,12 @@ export const listEvents = async (query) => {
       const descendants = await getDescendantIds(unitId);
 
       // Visibility Logic: 
-      // 1. Show anything in hierarchy (draft or published)
-      // 2. Show ANY published event from anywhere
-      where.OR = [
-        { unitId: { in: [unitId, ...ancestors, ...descendants] } },
-        { isPublished: true }
-      ];
+      // Show events in the unit hierarchy (own + ancestors + descendants)
+      // If isPublished filter is also specified, it will be applied separately below
+      where.unitId = { in: [unitId, ...ancestors, ...descendants] };
     }
-    // If National, we show all? Or just National events? 
-    // Usually National Admin wants to see everything.
-    // So if National, we effectively ignore the filter or allow all.
-    // But the current logic 'if (unitId)' implies filtering.
-    // If unitId is passed as National ID, strict filtering would hide Branch events.
-    // So generally, if National, we might want to skip this filter or include all descendants.
-    else if (unit) {
-      // Is National
-      // No filter needed implies "All events"
-      // But if they clicked "National HQ" specifically in a filter dropdown, they might only want National HQ events.
-      // However, in this context (Dashboard scoping), National Admin should see all.
-      // Let's assume if unitId is National, we don't restrict `where.unitId`.
-    }
+    // If National, we show all events (no unitId filter)
+    // National Admin should see everything
   }
 
   if (participationMode) {
@@ -196,6 +183,7 @@ export const listEvents = async (query) => {
 
   if (isPublished !== undefined) {
     // Handle both boolean and string values
+    // This filter is applied in addition to any unitId filtering above
     where.isPublished = isPublished === true || isPublished === 'true';
   }
 
