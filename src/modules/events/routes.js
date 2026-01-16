@@ -7,6 +7,7 @@ import {
   publishEventHandler,
   getEventStatisticsHandler,
   updateEventSettingsHandler,
+  deleteEventHandler,
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
@@ -34,5 +35,8 @@ router.get('/:id/statistics', authenticate, getEventStatisticsHandler);
 
 // PUT /api/events/:id/settings - Update event settings
 router.put('/:id/settings', authenticate, updateEventSettingsHandler);
+
+// DELETE /api/events/:id - Delete event
+router.delete('/:id', authenticate, deleteEventHandler);
 
 export default router;

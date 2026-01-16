@@ -199,6 +199,7 @@ export const getHistoryHandler = async (req, res, next) => {
       recipientId: req.query.recipientId,
       status: req.query.status,
       triggerType: req.query.triggerType,
+      userId: req.userId,
     });
 
     res.status(200).json({

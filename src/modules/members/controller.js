@@ -23,16 +23,23 @@ import fs from 'fs';
 const handleProfileImageUpload = async (req) => {
   if (req.file) {
     try {
+      console.log('--- UPLOADING PROFILE IMAGE ---');
+      console.log('File path:', req.file.path);
+      console.log('Cloudinary Config Check:');
+      console.log('- Cloud Name present:', !!(process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUD_NAME));
+      console.log('- API Key present:', !!(process.env.CLOUDINARY_API_KEY || process.env.API_KEY));
+      console.log('- API Secret present:', !!(process.env.CLOUDINARY_API_SECRET || process.env.SECRET_KEY));
+
       const uploadResult = await cloudinaryUploadImage(req.file.path);
       req.body.profilePhotoUrl = uploadResult.url;
-
+    } catch (uploadError) {
+      console.error('Profile image upload failed:', uploadError);
+      throw new Error('Failed to upload profile image: ' + uploadError.message);
+    } finally {
       // Clean up resized file from local storage
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
-    } catch (uploadError) {
-      console.error('Profile image upload failed:', uploadError);
-      // We continue even if image fails
     }
   }
 };

@@ -67,6 +67,7 @@ export const createEvent = async (data, userId) => {
       participationMode,
       imageUrl: imageUrl || null,
       createdBy: userId,
+      isPublished: true, // Auto-publish events on creation
     },
   });
 
@@ -168,26 +169,12 @@ export const listEvents = async (query) => {
       const descendants = await getDescendantIds(unitId);
 
       // Visibility Logic: 
-      // 1. Show anything in hierarchy (draft or published)
-      // 2. Show ANY published event from anywhere
-      where.OR = [
-        { unitId: { in: [unitId, ...ancestors, ...descendants] } },
-        { isPublished: true }
-      ];
+      // Show events in the unit hierarchy (own + ancestors + descendants)
+      // If isPublished filter is also specified, it will be applied separately below
+      where.unitId = { in: [unitId, ...ancestors, ...descendants] };
     }
-    // If National, we show all? Or just National events? 
-    // Usually National Admin wants to see everything.
-    // So if National, we effectively ignore the filter or allow all.
-    // But the current logic 'if (unitId)' implies filtering.
-    // If unitId is passed as National ID, strict filtering would hide Branch events.
-    // So generally, if National, we might want to skip this filter or include all descendants.
-    else if (unit) {
-      // Is National
-      // No filter needed implies "All events"
-      // But if they clicked "National HQ" specifically in a filter dropdown, they might only want National HQ events.
-      // However, in this context (Dashboard scoping), National Admin should see all.
-      // Let's assume if unitId is National, we don't restrict `where.unitId`.
-    }
+    // If National, we show all events (no unitId filter)
+    // National Admin should see everything
   }
 
   if (participationMode) {
@@ -196,6 +183,7 @@ export const listEvents = async (query) => {
 
   if (isPublished !== undefined) {
     // Handle both boolean and string values
+    // This filter is applied in addition to any unitId filtering above
     where.isPublished = isPublished === true || isPublished === 'true';
   }
 
@@ -261,7 +249,7 @@ export const updateEvent = async (eventId, data, userId) => {
   const updateData = {};
 
   if (title) updateData.title = title;
-  if (description !== undefined) updateData.description = description;
+  if (description !== undefined) updateData.description = description || null;
   if (startDate) {
     updateData.startDate = new Date(startDate);
     // Removed validation: Allow registration to extend into or after event period
@@ -273,7 +261,7 @@ export const updateEvent = async (eventId, data, userId) => {
   if (registrationStart) updateData.registrationStart = new Date(registrationStart);
   if (registrationEnd) updateData.registrationEnd = new Date(registrationEnd);
   if (participationMode) updateData.participationMode = participationMode;
-  if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+  if (imageUrl !== undefined) updateData.imageUrl = imageUrl || null;
 
   return prisma.event.update({
     where: { id: eventId },
@@ -458,4 +446,33 @@ export const isRegistrationOpen = (event) => {
 export const isEventHappening = (event) => {
   const now = new Date();
   return now >= event.startDate && now <= event.endDate;
+};
+
+/**
+ * Delete event
+ */
+export const deleteEvent = async (eventId, userId) => {
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+  });
+
+  if (!event) {
+    throw new NotFoundError('Event');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to delete this event');
+    }
+  }
+
+  // Optional: Prevent deletion if there are registrations? 
+  // For now, we allow it (Prisma will cascade delete as per schema)
+  // But maybe we should warn if it's already published?
+
+  return prisma.event.delete({
+    where: { id: eventId },
+  });
 };

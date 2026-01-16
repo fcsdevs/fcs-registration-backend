@@ -1,5 +1,6 @@
 import { getPrismaClient } from '../../lib/prisma.js';
 import { NotFoundError, AppError } from '../../middleware/error-handler.js';
+import { getEffectiveScope } from '../users/service.js';
 
 const prisma = getPrismaClient();
 
@@ -94,20 +95,22 @@ export const sendNotification = async (data) => {
   // Create notification record
   const notification = await prisma.notification.create({
     data: {
+      eventId: data.eventId,
       recipientId,
+      recipientEmail,
+      recipientPhone,
       deliveryMethod,
       subject,
       message,
       templateData,
-      triggerType,
+      triggerType: triggerType || 'GENERAL',
       status: 'PENDING',
       createdAt: new Date(),
     },
   });
 
   // Queue for actual sending (integration with email/SMS providers)
-  await queueNotificationJob({
-    notificationId: notification.id,
+  await queueNotificationJob(notification.id, {
     recipientEmail,
     recipientPhone,
     deliveryMethod,
@@ -118,16 +121,47 @@ export const sendNotification = async (data) => {
   return notification;
 };
 
+import { sendMail } from '../../lib/mail.js';
+
 /**
  * Queue notification job (background worker)
  */
-const queueNotificationJob = async (data) => {
-  // This would integrate with a job queue (Bull, RabbitMQ, etc.)
-  // For now, we just log it
-  console.log('Notification queued:', data);
+const queueNotificationJob = async (id, data) => {
+  // Execute asynchronously 
+  setTimeout(async () => {
+    try {
+      console.log(`[Worker] Processing notification ${id} (${data.deliveryMethod})`);
 
-  // In production:
-  // await notificationQueue.add(data, { attempts: 3, backoff: 'exponential' });
+      let sentResult = null;
+      if (data.deliveryMethod === 'EMAIL') {
+        sentResult = await sendMail({
+          to: data.recipientEmail,
+          subject: data.subject,
+          text: data.message,
+          html: data.message.replace(/\n/g, '<br/>'),
+        });
+      }
+
+      // Update status to SENT
+      await prisma.notification.update({
+        where: { id },
+        data: {
+          status: 'SENT',
+          sentAt: new Date(),
+        }
+      });
+      console.log(`[Worker] Notification ${id} sent successfully`);
+    } catch (error) {
+      console.error(`[Worker] Failed to send notification ${id}:`, error);
+      await prisma.notification.update({
+        where: { id },
+        data: {
+          status: 'FAILED',
+          failureReason: error.message,
+        }
+      });
+    }
+  }, 0);
 };
 
 /**
@@ -141,6 +175,7 @@ export const sendBatchNotifications = async (data) => {
     message,
     templateData = {},
     triggerType,
+    eventId,
   } = data;
 
   const notifications = [];
@@ -156,6 +191,7 @@ export const sendBatchNotifications = async (data) => {
         message,
         templateData,
         triggerType,
+        eventId,
       });
 
       notifications.push({
@@ -183,14 +219,38 @@ export const sendBatchNotifications = async (data) => {
  * Get notification history
  */
 export const getNotificationHistory = async (query = {}) => {
-  const { page = 1, limit = 50, recipientId, status, triggerType } = query;
+  const { page = 1, limit = 50, recipientId, status, triggerType, userId } = query;
   const skip = (page - 1) * limit;
 
   const where = {
-    ...(recipientId && { recipientId }),
     ...(status && { status }),
     ...(triggerType && { triggerType }),
   };
+
+  // Enforce recipient check for non-admins
+  if (userId) {
+    const scope = await getEffectiveScope(userId);
+    if (!scope.isGlobal && !scope.unitId) {
+      // Basic User: fetch their member record
+      const member = await prisma.member.findFirst({
+        where: { authUserId: userId },
+        select: { id: true },
+      });
+      if (member) {
+        where.recipientId = member.id;
+      } else {
+        // If no member record, they see nothing
+        return { data: [], pagination: { page, limit, total: 0, pages: 0 } };
+      }
+    } else {
+      // Admin: can filter by recipientId if provided
+      if (recipientId) {
+        where.recipientId = recipientId;
+      }
+    }
+  } else if (recipientId) {
+    where.recipientId = recipientId;
+  }
 
   const [notifications, total] = await Promise.all([
     prisma.notification.findMany({
@@ -198,6 +258,20 @@ export const getNotificationHistory = async (query = {}) => {
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
+      include: {
+        member: {
+          select: {
+            firstName: true,
+            lastName: true,
+            fcsCode: true,
+          },
+        },
+        event: {
+          select: {
+            title: true,
+          },
+        },
+      },
     }),
     prisma.notification.count({ where }),
   ]);
@@ -241,11 +315,12 @@ export const triggerRegistrationNotifications = async (registrationId) => {
       const notification = await sendNotification({
         recipientId: registration.member.id,
         recipientEmail: registration.member.email,
-        recipientPhone: registration.member.phone,
+        recipientPhone: registration.member.phoneNumber || registration.member.whatsappNumber,
         deliveryMethod: trigger.deliveryMethod,
-        subject: `Registration Confirmed - ${registration.event.name}`,
-        message: `Your registration for ${registration.event.name} has been confirmed.`,
+        subject: `Registration Confirmed - ${registration.event.title}`,
+        message: `Your registration for ${registration.event.title} has been confirmed.`,
         triggerType: 'REGISTRATION',
+        eventId: registration.event.id,
       });
 
       results.push({
@@ -297,11 +372,12 @@ export const triggerCenterAssignmentNotifications = async (registrationId) => {
       const notification = await sendNotification({
         recipientId: registration.member.id,
         recipientEmail: registration.member.email,
-        recipientPhone: registration.member.phone,
+        recipientPhone: registration.member.phoneNumber || registration.member.whatsappNumber,
         deliveryMethod: trigger.deliveryMethod,
-        subject: `Center Assignment - ${registration.event.name}`,
-        message: `You have been assigned to ${registration.center.name} for ${registration.event.name}.`,
+        subject: `Center Assignment - ${registration.event.title}`,
+        message: `You have been assigned to ${registration.center.centerName} for ${registration.event.title}.`,
         triggerType: 'CENTER_ASSIGNMENT',
+        eventId: registration.event.id,
       });
 
       results.push({
@@ -353,11 +429,12 @@ export const triggerGroupAssignmentNotifications = async (registrationId) => {
       const notification = await sendNotification({
         recipientId: registration.member.id,
         recipientEmail: registration.member.email,
-        recipientPhone: registration.member.phone,
+        recipientPhone: registration.member.phoneNumber || registration.member.whatsappNumber,
         deliveryMethod: trigger.deliveryMethod,
-        subject: `Group Assignment - ${registration.event.name}`,
-        message: `You have been assigned to ${registration.group.name} for ${registration.event.name}.`,
+        subject: `Group Assignment - ${registration.event.title}`,
+        message: `You have been assigned to ${registration.group.name} for ${registration.event.title}.`,
         triggerType: 'GROUP_ASSIGNMENT',
+        eventId: registration.event.id,
       });
 
       results.push({
@@ -407,11 +484,12 @@ export const triggerEventReminderNotifications = async (eventId) => {
         const notification = await sendNotification({
           recipientId: registration.member.id,
           recipientEmail: registration.member.email,
-          recipientPhone: registration.member.phone,
+          recipientPhone: registration.member.phoneNumber || registration.member.whatsappNumber,
           deliveryMethod: trigger.deliveryMethod,
-          subject: `Reminder: ${event.name}`,
-          message: `This is a reminder that ${event.name} is coming up on ${event.startDate}.`,
+          subject: `Reminder: ${event.title}`,
+          message: `This is a reminder that ${event.title} is coming up on ${event.startDate}.`,
           triggerType: 'EVENT_REMINDER',
+          eventId: event.id,
         });
 
         results.push({

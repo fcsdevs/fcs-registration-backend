@@ -327,6 +327,7 @@ export const getUserById = async (userId) => {
         firstName: member?.firstName || '',
         lastName: member?.lastName || '',
         email: user.email,
+        phoneNumber: member?.phoneNumber || '',
         roles: allAssignments.map(ra => ra?.role?.name).filter(Boolean),
         assignments: allAssignments.map(ra => ({
             id: ra.id,
@@ -339,4 +340,30 @@ export const getUserById = async (userId) => {
         unitId: allAssignments[0]?.unitId,
         memberCode: member?.fcsCode || '',
     };
+};
+
+export const updateUserProfile = async (userId, data) => {
+    const { firstName, lastName, phoneNumber, profiles } = data;
+
+    // 1. Get User and Member
+    const user = await prisma.authUser.findUnique({
+        where: { id: userId },
+        include: { members: true }
+    });
+
+    if (!user) throw new NotFoundError("User");
+    const member = user.members[0];
+    if (!member) throw new NotFoundError("Member profile");
+
+    // 2. Update Member
+    return await prisma.member.update({
+        where: { id: member.id },
+        data: {
+            ...(firstName && { firstName }),
+            ...(lastName && { lastName }),
+            ...(phoneNumber && { phoneNumber }),
+            // Allow updating other fields if provided in 'profiles'
+            ...(profiles || {})
+        }
+    });
 };

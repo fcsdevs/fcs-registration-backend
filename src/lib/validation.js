@@ -57,6 +57,7 @@ export const verifyOTPSchema = Joi.object({
   phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
   email: Joi.string().email().optional(),
   code: Joi.string().length(6).required(),
+  purpose: Joi.string().valid('EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'REGISTRATION').optional(),
 }).or('phoneNumber', 'email');
 
 export const resetPasswordSchema = Joi.object({
@@ -134,9 +135,9 @@ export const updateMemberSchema = Joi.object({
   institutionType: Joi.string().valid('PRIMARY', 'SECONDARY', 'TERTIARY').allow(null, '').optional(),
   level: Joi.string().allow('', null).optional(),
   course: Joi.string().allow('', null).optional(),
-  graduationYear: Joi.number().allow(null).optional(),
+  graduationYear: Joi.number().allow(null, '').optional(),
   membershipCategory: Joi.string().valid('PRIMARY', 'SECONDARY', 'TERTIARY', 'ASSOCIATE').optional(),
-  yearJoined: Joi.number().allow(null).optional(),
+  yearJoined: Joi.number().allow(null, '').optional(),
   state: Joi.string().allow('', null).optional(),
   zone: Joi.string().allow('', null).optional(),
   branch: Joi.string().allow('', null).optional(),
@@ -170,13 +171,13 @@ export const createEventSchema = Joi.object({
 
 export const updateEventSchema = Joi.object({
   title: Joi.string().min(5).max(200).optional(),
-  description: Joi.string().max(1000).optional(),
+  description: Joi.string().max(1000).allow('', null).optional(),
   startDate: Joi.date().iso().optional(),
   endDate: Joi.date().iso().optional(),
   registrationStart: Joi.date().iso().optional(),
   registrationEnd: Joi.date().iso().optional(),
   participationMode: Joi.string().valid('ONLINE', 'ONSITE', 'HYBRID').optional(),
-  imageUrl: Joi.string().uri().optional(),
+  imageUrl: Joi.string().uri().allow('', null).optional(),
 }).min(1).unknown(true);
 
 // ============================================================

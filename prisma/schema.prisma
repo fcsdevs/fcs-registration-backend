@@ -160,6 +160,7 @@ model Member {
   badges            Badge[]
   roleAssignments   RoleAssignment[]
   createdAuditLogs  AuditLog[]        @relation("AuditMember")
+  notifications     Notification[]
 
   @@index([fcsCode])
   @@index([authUserId])
@@ -285,7 +286,7 @@ model Event {
   registrationStart DateTime
   registrationEnd   DateTime
   participationMode String            // "ONLINE" | "ONSITE" | "HYBRID"
-  isPublished       Boolean           @default(false)
+  isPublished       Boolean           @default(true)
   imageUrl          String?
   createdBy         String
   createdByUser     AuthUser          @relation("EventCreatedBy", fields: [createdBy], references: [id])
@@ -299,6 +300,7 @@ model Event {
   attendances       AttendanceRecord[]
   badges            Badge[]
   notifications     Notification[]
+  notificationTriggers NotificationTrigger[]
   auditLogs         AuditLog[]
 
   @@index([unitId])
@@ -536,21 +538,42 @@ model Badge {
 
 model Notification {
   id                String            @id @default(cuid())
-  eventId           String
-  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId           String?
+  event             Event?            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  recipientId       String?
+  member            Member?           @relation(fields: [recipientId], references: [id], onDelete: SetNull)
   recipientEmail    String
   recipientPhone    String?
   subject           String
   message           String
-  notificationType  String            // "REGISTRATION_CONFIRMATION" | "CENTER_ASSIGNMENT" | "GROUP_ASSIGNMENT" | "EVENT_UPDATE" | "REMINDER"
-  channel           String            // "EMAIL" | "SMS" | "WHATSAPP"
+  triggerType       String            // "REGISTRATION" | "GROUP_ASSIGNMENT" | "CENTER_ASSIGNMENT" | "EVENT_UPDATE" | "REMINDER" | "GENERAL"
+  deliveryMethod    String            // "EMAIL" | "SMS" | "WHATSAPP" | "PUSH"
+  templateData      Json?
+  status            String            @default("PENDING") // "PENDING" | "SENT" | "DELIVERED" | "FAILED"
   sentAt            DateTime?
   deliveredAt       DateTime?
   failureReason     String?
   createdAt         DateTime          @default(now())
 
   @@index([eventId])
+  @@index([recipientId])
   @@index([sentAt])
+}
+
+model NotificationTrigger {
+  id                String            @id @default(cuid())
+  eventId           String
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  triggerType       String            // "REGISTRATION" | "GROUP_ASSIGNMENT" | "CENTER_ASSIGNMENT" | "EVENT_REMINDER"
+  deliveryMethod    String            // "EMAIL" | "SMS" | "PUSH"
+  templateId        String?
+  recipientType     String            // "MEMBER" | "PARENT" | "ADMIN"
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([eventId])
+  @@index([triggerType])
 }
 
 // ============================================================
