@@ -18,6 +18,7 @@ import { requestTimeout, socketTimeout } from './middleware/timeout-handler.js';
 
 // Import database connection helper
 import { initializeDatabase } from './lib/db-connection.js';
+import { verifySmtp } from './lib/mail.js';
 
 // Import routes
 import authRoutes from './modules/auth/routes.js';
@@ -39,6 +40,9 @@ import inviteRoutes from './modules/invites/routes.js';
 const app = express();
 const PORT = process.env.PORT || 3005;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Trust proxy for Render/Cloudflare relative to rate limiting
+app.set('trust proxy', 1);
 
 // Middleware
 app.use(helmet());
@@ -120,6 +124,14 @@ async function startServer() {
     logger.info('🔄 Initializing database connection...');
     await initializeDatabase();
 
+    // Verify SMTP configuration
+    logger.info('📧 Verifying SMTP configuration...');
+    logger.info(`   Host: ${process.env.SMTP_HOST}`);
+    logger.info(`   Port: ${process.env.SMTP_PORT}`);
+    logger.info(`   User: ${process.env.SMTP_USER}`);
+    logger.info(`   Secure: ${process.env.SMTP_SECURE}`);
+    await verifySmtp();
+
     // Start server after successful database connection
     server = app.listen(PORT, () => {
       logger.info(
@@ -129,6 +141,7 @@ async function startServer() {
     });
   } catch (error) {
     logger.error('Failed to start server:', error.message);
+    if (error.stack) logger.error(error.stack);
     logger.error('Exiting...');
     process.exit(1);
   }
