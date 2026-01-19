@@ -1,26 +1,9 @@
 import { getPrismaClient } from '../../lib/prisma.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../../middleware/error-handler.js';
+import { getAllDescendantIds } from '../units/service.js';
 
 const prisma = getPrismaClient();
 
-export const getAllDescendantIds = async (unitId) => {
-    const allIds = [];
-    let currentLevelIds = [unitId];
-
-    while (currentLevelIds.length > 0) {
-        // Fetch all children of current level units in one query
-        const children = await prisma.unit.findMany({
-            where: { parentId: { in: currentLevelIds } },
-            select: { id: true }
-        });
-
-        const childIds = children.map(c => c.id);
-        allIds.push(...childIds);
-        currentLevelIds = childIds;
-    }
-
-    return allIds;
-};
 
 export const getEffectiveScope = async (userId) => {
     // 1. Get Member & Assignments
@@ -222,7 +205,13 @@ export const assignUserRole = async (targetUserId, roleName, unitId, assignedByU
     }
 
     // 2. Validate Scoping (Can assignedByUserId assign to this unit?)
-    // Omitted for brevity, but crucial in production
+    if (unitId) {
+        const hasAccess = await checkScopeAccess(assignedByUserId, unitId);
+        if (!hasAccess) {
+            console.error('[SERVICE] Scoping violation. Admin cannot assign role to this unit.');
+            throw new ForbiddenError('You do not have permission to assign roles to this unit');
+        }
+    }
 
     // 3. Find User's Member Profile
     const targetUser = await prisma.authUser.findUnique({

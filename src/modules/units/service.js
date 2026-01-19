@@ -22,6 +22,51 @@ const UNIT_LEVELS = {
 };
 
 /**
+ * Get all descendant unit IDs (looking down)
+ */
+export const getAllDescendantIds = async (unitId) => {
+  const allIds = [];
+  let currentLevelIds = [unitId];
+
+  while (currentLevelIds.length > 0) {
+    const children = await prisma.unit.findMany({
+      where: { parentId: { in: currentLevelIds } },
+      select: { id: true }
+    });
+
+    const childIds = children.map(c => c.id);
+    allIds.push(...childIds);
+    currentLevelIds = childIds;
+  }
+
+  return allIds;
+};
+
+/**
+ * Get all ancestor unit IDs (looking up)
+ */
+export const getAllAncestorIds = async (unitId) => {
+  const ancestors = [];
+  let currentId = unitId;
+
+  while (currentId) {
+    const unit = await prisma.unit.findUnique({
+      where: { id: currentId },
+      select: { parentId: true }
+    });
+
+    if (unit && unit.parentId) {
+      ancestors.push(unit.parentId);
+      currentId = unit.parentId;
+    } else {
+      currentId = null;
+    }
+  }
+
+  return ancestors;
+};
+
+/**
  * Create organizational unit
  */
 export const createUnit = async (data, userId) => {
@@ -154,15 +199,22 @@ export const listUnits = async (query = {}) => {
     limit = 50,
     type,
     parentUnitId,
+    recursive = false,
     search,
     ids,
   } = query;
   const skip = (page - 1) * limit;
 
+  let unitIds = ids;
+  if (parentUnitId && (recursive === true || recursive === 'true')) {
+    const descendants = await getAllDescendantIds(parentUnitId);
+    unitIds = ids ? ids.filter(id => [parentUnitId, ...descendants].includes(id)) : [parentUnitId, ...descendants];
+  }
+
   const where = {
     ...(type && { unitType: { name: type } }),
-    ...(parentUnitId && { parentId: parentUnitId }),
-    ...(ids && { id: { in: ids } }),
+    ...(parentUnitId && !(recursive === true || recursive === 'true') && { parentId: parentUnitId }),
+    ...(unitIds && { id: { in: unitIds } }),
     ...(search && {
       OR: [
         { name: { contains: search, mode: 'insensitive' } },
