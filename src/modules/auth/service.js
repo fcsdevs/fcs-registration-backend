@@ -352,19 +352,17 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
         </div>
       `;
 
-      try {
-        await sendMail({
-          to: email,
-          subject,
-          text: `Your FCS verification code is: ${code}. It expires in 10 minutes.`,
-          html
-        });
+      // Send OTP via Email if provided (Asynchronous to prevent blocking/timeouts)
+      sendMail({
+        to: email,
+        subject,
+        text: `Your FCS verification code is: ${code}. It expires in 10 minutes.`,
+        html
+      }).then(() => {
         console.log(`OTP email sent successfully to ${email}`);
-      } catch (mailError) {
+      }).catch(mailError => {
         console.error('Failed to send OTP email:', mailError);
-        // We don't throw here to allow the user to see the code in dev if needed, 
-        // but in prod this might be a problem.
-      }
+      });
     }
 
     if (normalizedPhone) {

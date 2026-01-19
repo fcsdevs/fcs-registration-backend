@@ -65,7 +65,7 @@ export const generateFCSCode = () => {
  */
 export const getPaginationParams = (page = '1', limit = '20') => {
   const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
-  const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 20));
+  const limitNum = Math.min(1000, Math.max(1, parseInt(String(limit), 10) || 20));
 
   return {
     skip: (pageNum - 1) * limitNum,
