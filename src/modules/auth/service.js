@@ -270,9 +270,10 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
     console.log(`Starting sendOTP: phone=${phoneNumber}, email=${email}, purpose=${purpose}`);
     const normalizedPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
 
+    let authUser = null;
     // Check if user exists (for certain purposes)
     if (purpose !== 'REGISTRATION') {
-      const authUser = await prisma.authUser.findFirst({
+      authUser = await prisma.authUser.findFirst({
         where: {
           OR: [
             normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
@@ -287,9 +288,8 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
       }
     }
 
-    // Invalidate previous OTPs for this identifier
-    console.log('Invalidating previous OTPs...');
-    await prisma.oTPToken.deleteMany({
+    // Invalidate previous OTPs for this identifier (Background task)
+    prisma.oTPToken.deleteMany({
       where: {
         OR: [
           normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
@@ -298,14 +298,13 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
         purpose,
         usedAt: null,
       },
-    });
+    }).catch(err => console.error('Background OTP invalidation error:', err));
 
     // Generate OTP
     const code = generateOTP();
     console.log('Generated code:', code);
 
     // Create OTP record
-    console.log('Creating OTP record in DB...');
     const otpData = {
       phoneNumber: normalizedPhone,
       email: email,
@@ -314,18 +313,19 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     };
 
-    // Find user if they exist
-    const user = await prisma.authUser.findFirst({
+    // Use previously found user if available, otherwise do a quick lookup
+    const targetUser = authUser || await prisma.authUser.findFirst({
       where: {
         OR: [
           normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
           email ? { email } : undefined,
         ].filter(Boolean),
       },
+      select: { id: true }
     });
 
-    if (user) {
-      otpData.userId = user.id;
+    if (targetUser) {
+      otpData.userId = targetUser.id;
     }
 
     const otp = await prisma.oTPToken.create({
