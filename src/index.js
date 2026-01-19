@@ -41,6 +41,9 @@ const app = express();
 const PORT = process.env.PORT || 3005;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// Trust proxy for Render/Cloudflare relative to rate limiting
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(helmet());
 app.use(cors({

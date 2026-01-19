@@ -44,6 +44,7 @@ export const verifySmtp = async () => {
  */
 export const sendMail = async ({ to, subject, text, html }) => {
     try {
+        logger.info(`📧 Attempting to send email to ${to} with subject: ${subject}`);
         const info = await transporter.sendMail({
             from: `"${process.env.SMTP_SENDER_NAME || 'FCS Nigeria'}" <${process.env.SMTP_SENDER_EMAIL || process.env.SMTP_USER}>`,
             to,
