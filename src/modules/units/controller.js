@@ -31,7 +31,8 @@ const updateUnitSchema = Joi.object({
   leaderId: Joi.string(),
 });
 
-import { getEffectiveScope, getAllDescendantIds } from '../users/service.js';
+import { getEffectiveScope } from '../users/service.js';
+import { getAllDescendantIds } from './service.js';
 
 /**
  * POST /api/units
@@ -74,17 +75,18 @@ export const listUnitsHandler = async (req, res, next) => {
       });
     }
 
-    // Enforce Scope
-    const scope = await getEffectiveScope(req.userId);
+    // Enforce Scope if Authenticated
     let allowedIds = undefined;
-
-    if (!scope.isGlobal) {
-      if (!scope.unitId) {
-        // Admin with no unit? Should see nothing? Or just return empty.
-        allowedIds = [];
-      } else {
-        const descendants = await getAllDescendantIds(scope.unitId);
-        allowedIds = [scope.unitId, ...descendants];
+    if (req.userId) {
+      const scope = await getEffectiveScope(req.userId);
+      if (!scope.isGlobal) {
+        if (!scope.unitId) {
+          // Admin with no unit assigned should see nothing
+          allowedIds = [];
+        } else {
+          const descendants = await getAllDescendantIds(scope.unitId);
+          allowedIds = [scope.unitId, ...descendants];
+        }
       }
     }
 
@@ -92,6 +94,7 @@ export const listUnitsHandler = async (req, res, next) => {
       ...value,
       type: req.query.type,
       parentUnitId: req.query.parentUnitId,
+      recursive: req.query.recursive,
       search: req.query.search,
       ids: allowedIds
     });

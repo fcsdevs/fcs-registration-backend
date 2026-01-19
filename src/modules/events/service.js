@@ -11,6 +11,7 @@ import {
   ForbiddenError,
 } from '../../middleware/error-handler.js';
 import { checkScopeAccess } from '../users/service.js';
+import { getAllDescendantIds, getAllAncestorIds } from '../units/service.js';
 
 const prisma = getPrismaClient();
 
@@ -120,61 +121,17 @@ export const listEvents = async (query) => {
     where.title = { contains: search, mode: 'insensitive' };
   }
 
-  // Helper to get ancestor IDs
-  const getAncestorIds = async (unitId) => {
-    let ancestors = [];
-    let currentId = unitId;
-    while (currentId) {
-      const unit = await prisma.unit.findUnique({
-        where: { id: currentId },
-        select: { parentId: true }
-      });
-      if (unit && unit.parentId) {
-        ancestors.push(unit.parentId);
-        currentId = unit.parentId;
-      } else {
-        currentId = null;
-      }
-    }
-    return ancestors;
-  };
-
-  // Helper (simplified) for descendant IDs - simplified for depth 3 (State->Zone->Area->Branch)
-  const getDescendantIds = async (unitId) => {
-    // Breadth-first or naive recursive
-    const children = await prisma.unit.findMany({ where: { parentId: unitId }, select: { id: true } });
-    let ids = children.map(c => c.id);
-    for (const childId of ids) {
-      const grandChildren = await prisma.unit.findMany({ where: { parentId: childId }, select: { id: true } });
-      ids = [...ids, ...grandChildren.map(gc => gc.id)];
-      // One more level for safety (Area -> Branch)
-      for (const gcId of grandChildren.map(gc => gc.id)) {
-        const greatGrandChildren = await prisma.unit.findMany({ where: { parentId: gcId }, select: { id: true } });
-        ids = [...ids, ...greatGrandChildren.map(ggc => ggc.id)];
-      }
-    }
-    return ids;
-  };
-
   if (unitId) {
     // Hierarchical Event Visibility
-    // 1. Own Events
-    // 2. Ancestor Events (e.g. National Conference visible to Branch)
-    // 3. Descendant Events (e.g. Branch Fellowship visible to State Admin)
-
-    // Check if unit is National (optimizes query)
     const unit = await prisma.unit.findUnique({ where: { id: unitId }, include: { unitType: true } });
     if (unit && !unit.unitType.name.includes('National')) {
-      const ancestors = await getAncestorIds(unitId);
-      const descendants = await getDescendantIds(unitId);
+      const ancestors = await getAllAncestorIds(unitId);
+      const descendants = await getAllDescendantIds(unitId);
 
-      // Visibility Logic: 
-      // Show events in the unit hierarchy (own + ancestors + descendants)
-      // If isPublished filter is also specified, it will be applied separately below
+      // Visibility Logic: Show events in the unit hierarchy (own + ancestors + descendants)
       where.unitId = { in: [unitId, ...ancestors, ...descendants] };
     }
-    // If National, we show all events (no unitId filter)
-    // National Admin should see everything
+    // If National or unit not found, we show all events (no unitId filter)
   }
 
   if (participationMode) {

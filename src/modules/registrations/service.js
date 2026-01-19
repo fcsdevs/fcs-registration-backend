@@ -3,7 +3,8 @@ import {
   getPaginationParams,
   formatPaginatedResponse,
 } from '../../lib/helpers.js';
-import { checkScopeAccess, getAllDescendantIds } from '../users/service.js';
+import { checkScopeAccess } from '../users/service.js';
+import { getAllDescendantIds } from '../units/service.js';
 import {
   ValidationError,
   NotFoundError,

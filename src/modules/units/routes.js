@@ -23,8 +23,9 @@ router.post('/', authenticate, createUnitHandler);
 
 /**
  * GET /api/units
+ * Publicly accessible but scoped if authenticated
  */
-router.get('/', authenticate, listUnitsHandler);
+router.get('/', listUnitsHandler);
 
 /**
  * GET /api/units/hierarchy
