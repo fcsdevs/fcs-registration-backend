@@ -67,6 +67,8 @@ export const listUnitsHandler = async (req, res, next) => {
   try {
     const { error, value } = paginationSchema.validate(req.query);
     if (error) {
+      console.error('Validation error for listUnits:', error.details[0].message);
+      console.error('Query params received:', req.query);
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
