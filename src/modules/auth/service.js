@@ -105,6 +105,32 @@ export const registerUser = async (data) => {
     },
   });
 
+  // Create default role assignment for new user with HRBAC
+  // If branchId is provided, assign as Branch Member with that branch scope
+  // Otherwise, assign as Member with no administrative scope
+  if (branchId) {
+    try {
+      const memberRole = await prisma.role.findFirst({
+        where: { name: 'Member' }
+      });
+
+      if (memberRole) {
+        await prisma.roleAssignment.create({
+          data: {
+            userId: authUser.id,
+            roleId: memberRole.id,
+            unitId: branchId,
+            assignedAt: new Date(),
+            // No managedBy since this is self-signup, not admin-assigned
+          }
+        });
+      }
+    } catch (err) {
+      // Silently continue if role assignment fails - not critical for signup
+      console.warn('Failed to assign default role on signup:', err.message);
+    }
+  }
+
   // Generate token
   const token = generateToken(authUser.id, normalizedPhone, email);
 
@@ -267,7 +293,6 @@ export const loginUser = async (email, password) => {
  */
 export const sendOTP = async ({ phoneNumber, email, purpose }) => {
   try {
-    console.log(`Starting sendOTP: phone=${phoneNumber}, email=${email}, purpose=${purpose}`);
     const normalizedPhone = phoneNumber ? normalizePhoneNumber(phoneNumber) : null;
 
     let authUser = null;
@@ -283,7 +308,6 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
       });
 
       if (!authUser) {
-        console.log('User not found for OTP purpose:', purpose);
         throw new NotFoundError('User');
       }
     }
@@ -302,7 +326,6 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
 
     // Generate OTP
     const code = generateOTP();
-    console.log('Generated code:', code);
 
     // Create OTP record
     const otpData = {
@@ -359,7 +382,7 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
         text: `Your FCS verification code is: ${code}. It expires in 10 minutes.`,
         html
       }).then(() => {
-        console.log(`OTP email sent successfully to ${email}`);
+        // Success
       }).catch(mailError => {
         console.error('Failed to send OTP email:', mailError);
       });
@@ -367,19 +390,13 @@ export const sendOTP = async ({ phoneNumber, email, purpose }) => {
 
     if (normalizedPhone) {
       // TODO: Implement SMS sending (e.g. via Twilio or Termii)
-      console.log(`[SMS TODO] OTP for ${normalizedPhone}: ${code}`);
     }
 
     return {
       message: 'OTP sent',
       expiresIn: '10 minutes',
-      // For testing only - remove in production
-      otpCode: process.env.NODE_ENV === 'development' ? code : undefined,
     };
   } catch (error) {
-    console.error('Error detail in sendOTP service:');
-    console.error(JSON.stringify(error, null, 2));
-    console.error(error);
     throw error;
   }
 };

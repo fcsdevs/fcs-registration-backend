@@ -12,6 +12,7 @@ import { createEventSchema, updateEventSchema, paginationSchema } from '../../li
 
 import { cloudinaryUploadImage } from '../../lib/cloudinary.js';
 import fs from 'fs';
+import { getAdminScope } from '../../middleware/scope-validator.js';
 
 /**
  * POST /api/events - Create event
@@ -54,8 +55,6 @@ export const createEventHandler = async (req, res, next) => {
   }
 };
 
-import { getEffectiveScope } from '../users/service.js';
-
 /**
  * GET /api/events - List events
  */
@@ -71,16 +70,13 @@ export const listEventsHandler = async (req, res, next) => {
       });
     }
 
-    // Enforce Scope
-    const scope = await getEffectiveScope(req.userId);
+    // Enforce Scope (HRBAC)
+    const scope = await getAdminScope(req.userId);
     let effectiveUnitId = req.query.unitId;
 
-    if (!scope.isGlobal) {
-      // Current logic in service allows showing ancestor/descendant events
-      // But we should default the 'perspective' to the user's unit if not specified
-      // If they requested a different unit, we might want to check if it's visible.
-      // For SIMPLICITY and SECURITY: We force the unitId param to be the user's unit.
-      // The service logic will then expand this to show ancestors/descendants.
+    if (!scope.isGlobal && scope.unitId) {
+      // Non-global admins default to their own unit
+      // They can only see events in their hierarchy (own + descendants)
       effectiveUnitId = scope.unitId;
     }
 
@@ -90,6 +86,7 @@ export const listEventsHandler = async (req, res, next) => {
       unitId: effectiveUnitId,
       participationMode: req.query.participationMode,
       isPublished: req.query.isPublished,
+      adminScope: scope, // Pass scope to service for filtering
     });
 
     res.status(200).json(events);

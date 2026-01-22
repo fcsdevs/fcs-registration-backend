@@ -34,9 +34,16 @@ export const listUsersHandler = async (req, res, next) => {
             console.log(`🔒 [SECURITY] Enforcing scope for User ${req.userId}: ${effectiveUnitId} (${scope.level})`);
         }
 
+        const queryParams = { ...req.query };
+        if (effectiveUnitId) {
+            queryParams.unitId = effectiveUnitId;
+        } else {
+            // For global admins with no unitId specified, remove the unitId from query
+            delete queryParams.unitId;
+        }
+
         const users = await listUsers({
-            ...req.query,
-            unitId: effectiveUnitId,
+            ...queryParams,
             currentUserId: req.userId,
         });
         res.status(200).json(users);

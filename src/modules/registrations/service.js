@@ -534,7 +534,10 @@ export const getRegistrarStatistics = async (eventId, registrarId, centerId) => 
   const registeredByMe = await prisma.registration.count({
     where: {
       eventId,
-      registeredBy: registrarId
+      OR: [
+        { registeredBy: registrarId },
+        { member: { authUserId: registrarId } }
+      ]
     }
   });
 

@@ -14,11 +14,10 @@ const generateUnitCode = (name, typeName) => {
 
 const UNIT_LEVELS = {
   'National': 1,
-  'Regional': 2,
+  'Area': 2,
   'State': 3,
   'Zone': 4,
-  'Area': 5,
-  'Branch': 6
+  'Branch': 5
 };
 
 /**

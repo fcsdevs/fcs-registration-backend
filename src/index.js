@@ -124,13 +124,14 @@ async function startServer() {
     logger.info('🔄 Initializing database connection...');
     await initializeDatabase();
 
-    // Verify SMTP configuration
-    logger.info('📧 Verifying SMTP configuration...');
-    logger.info(`   Host: ${process.env.SMTP_HOST}`);
-    logger.info(`   Port: ${process.env.SMTP_PORT}`);
-    logger.info(`   User: ${process.env.SMTP_USER}`);
-    logger.info(`   Secure: ${process.env.SMTP_SECURE}`);
-    await verifySmtp();
+    // Verify SMTP configuration (non-blocking - warn but continue)
+    try {
+      await verifySmtp();
+      logger.info('✅ SMTP configuration verified successfully');
+    } catch (smtpError) {
+      logger.warn('⚠️  SMTP verification warning (server will continue):', smtpError.message);
+    }
+
 
     // Start server after successful database connection
     server = app.listen(PORT, () => {

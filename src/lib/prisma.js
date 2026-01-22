@@ -13,8 +13,10 @@ export const getPrismaClient = () => {
         { emit: 'event', level: 'error' },
         { emit: 'event', level: 'warn' },
       ],
+      errorFormat: 'pretty',
     });
 
+    // Handle connection events
     prisma.$on('query', (e) => {
       logger.debug(`Query: ${e.query}`);
       logger.debug(`Params: ${e.params}`);
@@ -28,6 +30,19 @@ export const getPrismaClient = () => {
     prisma.$on('warn', (e) => {
       logger.warn(`Prisma Warning: ${e.message}`);
     });
+
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+      logger.info('SIGTERM signal received: closing Prisma connection');
+      await prisma.$disconnect();
+      process.exit(0);
+    });
+
+    process.on('SIGINT', async () => {
+      logger.info('SIGINT signal received: closing Prisma connection');
+      await prisma.$disconnect();
+      process.exit(0);
+    });
   }
 
   return prisma;
@@ -36,6 +51,7 @@ export const getPrismaClient = () => {
 export const disconnectPrisma = async () => {
   if (prisma) {
     await prisma.$disconnect();
+    prisma = null;
   }
 };
 

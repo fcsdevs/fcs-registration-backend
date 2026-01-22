@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { UnauthorizedError, ForbiddenError } from './error-handler.js';
 import { getPrismaClient } from '../lib/prisma.js';
+import { getAdminScope } from './scope-validator.js';
 
 const prisma = getPrismaClient();
 
@@ -91,8 +92,9 @@ export const authorize = (allowedRoles = []) => {
         return next(new ForbiddenError('Insufficient permissions'));
       }
 
-      // Attach roles to request for subsequent use if needed
+      // Attach roles and scope to request for subsequent use
       req.userRoles = userRoles;
+      req.adminScope = await getAdminScope(req.userId);
 
       next();
     } catch (error) {

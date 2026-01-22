@@ -7,15 +7,14 @@ import {
   getDashboardSummary,
 } from './service.js';
 import { paginationSchema } from '../../lib/validation.js';
-
-import { getEffectiveScope } from '../users/service.js';
+import { getAdminScope } from '../../middleware/scope-validator.js';
 
 /**
  * GET /api/reports/dashboard
  */
 export const getDashboardHandler = async (req, res, next) => {
   try {
-    const scope = await getEffectiveScope(req.userId);
+    const scope = await getAdminScope(req.userId);
     let effectiveUnitId = req.query.unitId;
 
     if (!scope.isGlobal) {
@@ -24,7 +23,8 @@ export const getDashboardHandler = async (req, res, next) => {
 
     const summary = await getDashboardSummary({
       ...req.query,
-      unitId: effectiveUnitId
+      unitId: effectiveUnitId,
+      adminScope: scope,
     });
     res.status(200).json({
       data: summary,

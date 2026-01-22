@@ -60,10 +60,10 @@ export const generateTagPdf = async (registration) => {
                     width: width - (margin * 2)
                 });
 
-            doc.font('Helvetica')
-                .fontSize(12)
-                .fillColor('#666666')
-                .text(registration.member?.fcsCode || '', { align: 'center' });
+            doc.font('Helvetica-Bold')
+                .fontSize(14)
+                .fillColor('#1e40af')
+                .text(`FCS ID: ${registration.member?.fcsCode || ''}`, { align: 'center' });
 
             // --- ROLE / STATUS ---
             const role = registration.status === 'CONFIRMED' || registration.status === 'CHECKED_IN' ? 'DELEGATE' : registration.status;
