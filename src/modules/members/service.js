@@ -417,6 +417,7 @@ export const searchMembers = async (query) => {
         { firstName: { contains: query, mode: 'insensitive' } },
         { lastName: { contains: query, mode: 'insensitive' } },
         { fcsCode: { contains: query, mode: 'insensitive' } },
+        { email: { contains: query, mode: 'insensitive' } },
       ],
       isActive: true,
     },

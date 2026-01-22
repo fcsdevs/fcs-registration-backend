@@ -287,7 +287,7 @@ export const getGlobalRegistrationsStatsHandler = async (req, res, next) => {
     const { eventId } = req.query;
 
     // Enforce Scope
-    const scope = await getEffectiveScope(req.userId);
+    const scope = await getAdminScope(req.userId);
     let effectiveUnitId = req.query.unitId;
     if (!scope.isGlobal) {
       if (!eventId) {

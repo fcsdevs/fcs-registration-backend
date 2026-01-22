@@ -153,6 +153,7 @@ export const getRegistrationById = async (registrationId) => {
           lastName: true,
           phoneNumber: true,
           email: true,
+          profilePhotoUrl: true,
         },
       },
       event: {
@@ -162,6 +163,7 @@ export const getRegistrationById = async (registrationId) => {
           participationMode: true,
           startDate: true,
           endDate: true,
+          imageUrl: true,
         },
       },
       participation: {
@@ -238,13 +240,49 @@ export const listRegistrations = async (query) => {
       skip,
       take,
       include: {
-        member: { select: { fcsCode: true, firstName: true, lastName: true } },
-        event: { select: { title: true, startDate: true, endDate: true, participationMode: true } },
-        participation: {
-          include: {
-            center: true
+        member: {
+          select: {
+            id: true,
+            fcsCode: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phoneNumber: true,
+            profilePhotoUrl: true
           }
         },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            startDate: true,
+            endDate: true,
+            participationMode: true,
+            imageUrl: true
+          }
+        },
+        participation: {
+          include: {
+            center: {
+              select: {
+                id: true,
+                centerName: true,
+                address: true
+              }
+            }
+          }
+        },
+        groupAssignment: {
+          include: {
+            group: {
+              select: {
+                id: true,
+                name: true,
+                type: true
+              }
+            }
+          }
+        }
       },
       orderBy: { registrationDate: 'desc' },
     }),
