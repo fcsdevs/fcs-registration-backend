@@ -5,7 +5,9 @@ import Joi from 'joi';
 // ============================================================
 
 export const registerSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required().messages({
+    'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
+  }),
   email: Joi.string().email().allow('', null).optional(),
   password: Joi.string().min(8).required(),
   confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
@@ -13,7 +15,9 @@ export const registerSchema = Joi.object({
   lastName: Joi.string().min(2).max(50).required(),
   otherNames: Joi.string().allow('', null).optional(),
   preferredName: Joi.string().allow('', null).optional(),
-  whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'WhatsApp number must be a valid Nigerian number'
+  }),
   dateOfBirth: Joi.date().iso().allow(null).optional(),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional(),
   maritalStatus: Joi.string().valid('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED').optional(),
@@ -32,10 +36,14 @@ export const registerSchema = Joi.object({
   branchId: Joi.string().optional(),
   preferredContactMethod: Joi.string().valid('SMS', 'EMAIL', 'WHATSAPP').optional(),
   emergencyContactName: Joi.string().allow('', null).optional(),
-  emergencyContactPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  emergencyContactPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'Emergency contact phone must be a valid Nigerian number'
+  }),
   ageBracket: Joi.string().optional(),
   guardianName: Joi.string().allow('', null).optional(),
-  guardianPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  guardianPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'Guardian phone must be a valid Nigerian number'
+  }),
   guardianEmail: Joi.string().email().allow('', null).optional(),
   guardianRelationship: Joi.string().allow('', null).optional(),
   privacyPolicyAccepted: Joi.boolean().valid(true).required(),
@@ -48,20 +56,26 @@ export const loginSchema = Joi.object({
 });
 
 export const sendOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
+  }),
   email: Joi.string().email().optional(),
   purpose: Joi.string().valid('EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'REGISTRATION').required(),
 }).or('phoneNumber', 'email');
 
 export const verifyOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
+  }),
   email: Joi.string().email().optional(),
   code: Joi.string().length(6).required(),
   purpose: Joi.string().valid('EMAIL_VERIFICATION', 'PHONE_VERIFICATION', 'PASSWORD_RESET', 'REGISTRATION').optional(),
 }).or('phoneNumber', 'email');
 
 export const resetPasswordSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
+  }),
   email: Joi.string().email().optional(),
   code: Joi.string().length(6).required(),
   newPassword: Joi.string().min(8).required(),
@@ -70,7 +84,9 @@ export const resetPasswordSchema = Joi.object({
 
 export const checkExistenceSchema = Joi.object({
   email: Joi.string().email().optional(),
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
+  }),
 }).or('email', 'phoneNumber');
 
 export const changePasswordSchema = Joi.object({
@@ -89,8 +105,12 @@ export const createMemberSchema = Joi.object({
   otherNames: Joi.string().allow('', null).optional(),
   preferredName: Joi.string().allow('', null).optional(),
   email: Joi.string().email().allow(null, '').optional(),
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
-  whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
+  }),
+  whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'WhatsApp number must be a valid Nigerian number'
+  }),
   dateOfBirth: Joi.date().iso().allow(null).optional(),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional(),
   maritalStatus: Joi.string().valid('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED').optional(),
@@ -112,7 +132,9 @@ export const createMemberSchema = Joi.object({
   emergencyContactPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
   ageBracket: Joi.string().allow('', null).optional(),
   guardianName: Joi.string().allow('', null).optional(),
-  guardianPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  guardianPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'Guardian phone must be a valid Nigerian number'
+  }),
   guardianEmail: Joi.string().email().allow('', null).optional(),
   guardianRelationship: Joi.string().allow('', null).optional(),
   profilePhotoUrl: Joi.string().uri().allow('', null).optional(),
@@ -124,8 +146,12 @@ export const updateMemberSchema = Joi.object({
   otherNames: Joi.string().allow('', null).optional(),
   preferredName: Joi.string().allow('', null).optional(),
   email: Joi.string().email().allow(null, '').optional(),
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional(),
-  whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
+  }),
+  whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'WhatsApp number must be a valid Nigerian number'
+  }),
   dateOfBirth: Joi.date().iso().allow(null).optional(),
   gender: Joi.string().valid('MALE', 'FEMALE', 'OTHER').optional(),
   maritalStatus: Joi.string().valid('SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED').optional(),
@@ -144,10 +170,14 @@ export const updateMemberSchema = Joi.object({
   branchId: Joi.string().allow('', null).optional(),
   preferredContactMethod: Joi.string().valid('SMS', 'EMAIL', 'WHATSAPP').optional(),
   emergencyContactName: Joi.string().allow('', null).optional(),
-  emergencyContactPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  emergencyContactPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'Emergency contact phone must be a valid Nigerian number'
+  }),
   ageBracket: Joi.string().allow('', null).optional(),
   guardianName: Joi.string().allow('', null).optional(),
-  guardianPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional(),
+  guardianPhone: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+    'string.pattern.base': 'Guardian phone must be a valid Nigerian number'
+  }),
   guardianEmail: Joi.string().email().allow('', null).optional(),
   guardianRelationship: Joi.string().allow('', null).optional(),
   profilePhotoUrl: Joi.string().uri().allow('', null).optional(),

@@ -11,6 +11,7 @@ import {
   validateAttendanceCode,
 } from './service.js';
 import { checkInSchema, checkOutSchema, bulkSyncSchema, paginationSchema } from '../../lib/validation.js';
+import { getAdminScope } from '../../middleware/scope-validator.js';
 
 /**
  * POST /api/attendance/check-in
@@ -128,10 +129,12 @@ export const getEventAttendanceHandler = async (req, res, next) => {
       });
     }
 
+    const scope = await getAdminScope(req.userId);
     const attendance = await getEventAttendance(req.params.eventId, {
       ...value,
       centerId: req.query.centerId,
       verified: req.query.verified,
+      adminScope: scope,
     });
 
     res.status(200).json({

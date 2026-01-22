@@ -17,6 +17,19 @@ import { uploadPhoto, eventImgResize } from '../../middleware/upload.js';
 
 const router = express.Router();
 
+// Middleware to extend timeout for profile updates (image upload)
+const profileUpdateTimeout = (req, res, next) => {
+  res.setTimeout(120000, () => {
+    res.status(408).json({
+      error: {
+        code: 'REQUEST_TIMEOUT',
+        message: 'Profile update timed out. Please try again.',
+      },
+    });
+  });
+  next();
+};
+
 // GET /api/members/search - Search members (MUST be before /:id)
 router.get('/search', authenticate, searchMembersHandler);
 
@@ -30,7 +43,8 @@ router.post('/', authenticate, uploadPhoto.single('image'), eventImgResize, crea
 router.get('/code/:code', authenticate, getMemberByCodeHandler);
 
 // PUT /api/members/profile - Update own profile (MUST be before /:id)
-router.put('/profile', authenticate, uploadPhoto.single('image'), eventImgResize, updateProfileHandler);
+// Extended timeout for image upload
+router.put('/profile', authenticate, profileUpdateTimeout, uploadPhoto.single('image'), eventImgResize, updateProfileHandler);
 
 // GET /api/members/:id - Get member details
 router.get('/:id', authenticate, getMemberHandler);

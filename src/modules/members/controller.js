@@ -11,7 +11,7 @@ import {
   searchMembers,
   getMemberByAuthId,
 } from './service.js';
-import { getEffectiveScope } from '../users/service.js';
+import { getAdminScope } from '../../middleware/scope-validator.js';
 import { createMemberSchema, updateMemberSchema, paginationSchema } from '../../lib/validation.js';
 import prisma from '../../lib/prisma.js';
 import { cloudinaryUploadImage } from '../../lib/cloudinary.js';
@@ -19,6 +19,7 @@ import fs from 'fs';
 
 /**
  * Handle image upload for member profile
+ * Non-blocking: fails gracefully without blocking profile update
  */
 const handleProfileImageUpload = async (req) => {
   if (req.file) {
@@ -30,15 +31,39 @@ const handleProfileImageUpload = async (req) => {
       console.log('- API Key present:', !!(process.env.CLOUDINARY_API_KEY || process.env.API_KEY));
       console.log('- API Secret present:', !!(process.env.CLOUDINARY_API_SECRET || process.env.SECRET_KEY));
 
-      const uploadResult = await cloudinaryUploadImage(req.file.path);
+      // Add timeout to prevent hanging uploads
+      const uploadWithTimeout = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Image upload timeout (exceeded 10 seconds)'));
+        }, 10000);
+
+        cloudinaryUploadImage(req.file.path)
+          .then(result => {
+            clearTimeout(timeout);
+            resolve(result);
+          })
+          .catch(error => {
+            clearTimeout(timeout);
+            reject(error);
+          });
+      });
+
+      const uploadResult = await uploadWithTimeout;
       req.body.profilePhotoUrl = uploadResult.url;
+      console.log('✅ Profile image uploaded successfully');
     } catch (uploadError) {
-      console.error('Profile image upload failed:', uploadError);
-      throw new Error('Failed to upload profile image: ' + uploadError.message);
+      console.warn('⚠️ Profile image upload failed (non-blocking):', uploadError.message);
+      // Log the error but don't throw - allow profile update to proceed without image
+      console.log('Continuing with profile update without image...');
     } finally {
       // Clean up resized file from local storage
-      if (fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      if (req.file && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+          console.log('✅ Cleaned up local image file');
+        } catch (err) {
+          console.warn('⚠️ Failed to clean up local file:', err.message);
+        }
       }
     }
   }
@@ -85,8 +110,8 @@ export const listMembersHandler = async (req, res, next) => {
       });
     }
 
-    // Enforce Scope
-    const scope = await getEffectiveScope(req.userId);
+    // Enforce Scope with new scope-validator
+    const scope = await getAdminScope(req.userId);
     let effectiveUnitId = req.query.unitId;
 
     if (!scope.isGlobal) {
@@ -100,6 +125,7 @@ export const listMembersHandler = async (req, res, next) => {
       isActive: req.query.isActive,
       gender: req.query.gender,
       unitId: effectiveUnitId,
+      adminScope: scope,
     });
 
     res.status(200).json(members);

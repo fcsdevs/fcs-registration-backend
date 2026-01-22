@@ -84,10 +84,16 @@ export const listGroupsHandler = async (req, res, next) => {
       });
     }
 
+    // Get user's scope to check if they're a global admin
+    const userScope = req.userScope;
+    const isGlobalAdmin = userScope?.isGlobal === true;
+
     const groups = await listGroupsByEvent(req.params.eventId, {
       ...value,
       type: req.query.type,
       isActive: req.query.isActive,
+      userId: req.user.id,
+      isGlobalAdmin: isGlobalAdmin,
     });
 
     res.status(200).json({

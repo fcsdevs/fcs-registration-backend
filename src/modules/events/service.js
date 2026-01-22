@@ -10,7 +10,7 @@ import {
   NotFoundError,
   ForbiddenError,
 } from '../../middleware/error-handler.js';
-import { checkScopeAccess } from '../users/service.js';
+import { isWithinScope } from '../../middleware/scope-validator.js';
 import { getAllDescendantIds, getAllAncestorIds } from '../units/service.js';
 
 const prisma = getPrismaClient();
@@ -31,8 +31,8 @@ export const createEvent = async (data, userId) => {
     imageUrl,
   } = data;
 
-  // Permission Check
-  const hasAccess = await checkScopeAccess(userId, unitId);
+  // Permission Check (HRBAC: verify scope)
+  const hasAccess = await isWithinScope(userId, unitId);
   if (!hasAccess) {
     throw new ForbiddenError('You do not have permission to create events for this unit');
   }

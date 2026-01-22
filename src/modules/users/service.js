@@ -1,79 +1,16 @@
 import { getPrismaClient } from '../../lib/prisma.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../../middleware/error-handler.js';
 import { getAllDescendantIds } from '../units/service.js';
+import { getAdminScope, canManageUser } from '../../middleware/scope-validator.js';
 
 const prisma = getPrismaClient();
 
+/**
+ * DEPRECATED: Use getAdminScope from scope-validator.js instead
+ * Kept for backward compatibility
+ */
+export const getEffectiveScope = async (userId) => getAdminScope(userId);
 
-export const getEffectiveScope = async (userId) => {
-    // 1. Get Member & Assignments
-    const member = await prisma.member.findFirst({
-        where: { authUserId: userId },
-        include: {
-            roleAssignments: {
-                include: {
-                    role: true,
-                    unit: { include: { unitType: true } }
-                }
-            }
-        }
-    });
-
-    if (!member || !member.roleAssignments || member.roleAssignments.length === 0) {
-        return { unitId: null, isGlobal: false, level: 'None' };
-    }
-
-    // 2. Determine Highest Scope
-    // Roles: Super Admin, National Admin -> Global
-    // Others -> Scoped to Unit
-    let highestScope = { unitId: null, isGlobal: false, level: 'None', unitName: '' };
-
-    // Simple hierarchy check: National > others
-    const isGlobal = member.roleAssignments.some(ra =>
-        ra.role.name.toLowerCase().includes('national') ||
-        ra.role.name.toLowerCase().includes('super') ||
-        (ra.unit && ra.unit.unitType && ra.unit.unitType.name === 'National')
-    );
-
-    if (isGlobal) {
-        return { unitId: null, isGlobal: true, level: 'National' };
-    }
-
-    // If not global, find the assignment.
-    // For now, assume single active role or take the first one. 
-    // In a multi-role scenario, we might need to merging scopes, but usually it's one admin scope.
-    // We prioritize the highest level unit if multiple exist.
-
-    // Hierarchy Levels (Approximation)
-    const levels = ['Regional', 'State', 'Zone', 'Area', 'Branch'];
-
-    for (const level of levels) {
-        const assignment = member.roleAssignments.find(ra =>
-            ra.unit?.unitType?.name === level || ra.role.name.includes(level)
-        );
-        if (assignment && assignment.unitId) {
-            return {
-                unitId: assignment.unitId,
-                isGlobal: false,
-                level,
-                unitName: assignment.unit.name
-            };
-        }
-    }
-
-    // Fallback: If no recognized level but has unit
-    const anyAssignment = member.roleAssignments.find(ra => ra.unitId);
-    if (anyAssignment) {
-        return {
-            unitId: anyAssignment.unitId,
-            isGlobal: false,
-            level: anyAssignment.unit.unitType?.name || 'Unknown',
-            unitName: anyAssignment.unit.name
-        };
-    }
-
-    return { unitId: null, isGlobal: false, level: 'None' };
-};
 
 export const checkScopeAccess = async (userId, targetUnitId) => {
     if (!targetUnitId) return true;
@@ -204,12 +141,12 @@ export const assignUserRole = async (targetUserId, roleName, unitId, assignedByU
         throw new NotFoundError(`Role ${roleName}`);
     }
 
-    // 2. Validate Scoping (Can assignedByUserId assign to this unit?)
+    // 2. Verify scope access (HRBAC: Can assignedByUserId assign to this unit?)
     if (unitId) {
-        const hasAccess = await checkScopeAccess(assignedByUserId, unitId);
+        const hasAccess = await canManageUser(assignedByUserId, targetUserId);
         if (!hasAccess) {
-            console.error('[SERVICE] Scoping violation. Admin cannot assign role to this unit.');
-            throw new ForbiddenError('You do not have permission to assign roles to this unit');
+            console.error('[SERVICE] HRBAC violation. Admin cannot assign role to this unit.');
+            throw new ForbiddenError('You do not have permission to assign roles to this user');
         }
     }
 
@@ -236,7 +173,7 @@ export const assignUserRole = async (targetUserId, roleName, unitId, assignedByU
             });
         }
 
-        // 4. Create/Update Assignment
+        // 4. Create/Update Assignment with HRBAC tracking
         const existing = await tx.roleAssignment.findFirst({
             where: { memberId, roleId: role.id, unitId }
         });

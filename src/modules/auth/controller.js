@@ -101,11 +101,9 @@ export const login = async (req, res, next) => {
 
 export const sendOTPHandler = async (req, res, next) => {
   try {
-    console.log('sendOTPHandler received body:', req.body);
     // Validate request
     const { error, value } = sendOTPSchema.validate(req.body);
     if (error) {
-      console.log('Validation error:', error.details[0].message);
       return res.status(400).json({
         error: {
           code: 'VALIDATION_ERROR',
@@ -114,15 +112,12 @@ export const sendOTPHandler = async (req, res, next) => {
       });
     }
 
-    console.log('Calling sendOTP service with:', value);
     const result = await sendOTP(value);
-    console.log('sendOTP service returned:', result); // Added detailed logging
     res.status(200).json({
       data: result,
       message: 'OTP sent successfully',
     });
   } catch (error) {
-    console.error('Error in sendOTPHandler:', error);
     next(error);
   }
 };

@@ -13,6 +13,7 @@ import {
   markAttendance,
 } from './service.js';
 import { createRegistrationSchema, assignCenterSchema, paginationSchema } from '../../lib/validation.js';
+import { getAdminScope } from '../../middleware/scope-validator.js';
 
 /**
  * POST /api/registrations
@@ -39,8 +40,6 @@ export const createRegistrationHandler = async (req, res, next) => {
   }
 };
 
-import { getEffectiveScope } from '../users/service.js';
-
 /**
  * GET /api/registrations
  */
@@ -56,13 +55,13 @@ export const listRegistrationsHandler = async (req, res, next) => {
       });
     }
 
-    // Enforce Scope
-    const scope = await getEffectiveScope(req.userId);
+    // Enforce Scope with new scope-validator
+    const scope = await getAdminScope(req.userId);
     let effectiveUnitId = req.query.unitId;
     if (!scope.isGlobal) {
       // If eventId is provided, we assume the user has access to the event (or is performing a check-in)
       // and we do NOT restrict by unit scope. This allows Center Admins to check in members for National events.
-      // Otherwise, restrict to user's unit.
+      // Otherwise, restrict to user's unit and descendants.
       if (!req.query.eventId) {
         effectiveUnitId = scope.unitId;
       }
@@ -78,6 +77,7 @@ export const listRegistrationsHandler = async (req, res, next) => {
       ids: req.query.ids,
       unitId: effectiveUnitId,
       search: req.query.search,
+      adminScope: scope,
     });
 
     res.status(200).json(registrations);

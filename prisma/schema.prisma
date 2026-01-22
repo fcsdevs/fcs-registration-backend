@@ -42,6 +42,9 @@ model AuthUser {
   attendanceCorrections AttendanceCorrection[] @relation("CorrectedBy")
   centerAdmins      CenterAdmin[]
   sentInvites       Invite[]          // Added back-relation
+  
+  // HRBAC: Admin manages other admins' role assignments
+  managedAssignments RoleAssignment[] @relation("AdminManagesAssignment")
 
   @@index([phoneNumber])
   @@index([email])
@@ -265,10 +268,15 @@ model RoleAssignment {
   expiresAt         DateTime?
   createdAt         DateTime          @default(now())
 
+  // HRBAC: Admin-to-Admin hierarchy
+  managedBy         String?           // Parent admin who manages this assignment
+  managedByUser     AuthUser?         @relation("AdminManagesAssignment", fields: [managedBy], references: [id], onDelete: SetNull)
+
   @@unique([memberId, roleId, unitId])
   @@index([memberId])
   @@index([roleId])
   @@index([unitId])
+  @@index([managedBy])
 }
 
 // ============================================================
