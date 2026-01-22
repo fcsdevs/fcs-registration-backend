@@ -328,7 +328,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line213">line 213</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line239">line 239</a>
     </li></ul></dd>
     
 
@@ -452,7 +452,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line370">line 370</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line369">line 369</a>
     </li></ul></dd>
     
 
@@ -762,7 +762,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line167">line 167</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line173">line 173</a>
     </li></ul></dd>
     
 
@@ -824,7 +824,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line159">line 159</a>
+        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line202">line 202</a>
     </li></ul></dd>
     
 
@@ -966,6 +966,69 @@
 
         
             
+<h4 class="name" id="buildScopedResponse"><span class="type-signature">(constant) </span>buildScopedResponse<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Build response with scope-aware pagination
+Usage: return buildScopedResponse(await scopedFindMany(...), userId)
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_scope-helpers.js.html">lib/scope-helpers.js</a>, <a href="lib_scope-helpers.js.html#line77">line 77</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
 <h4 class="name" id="bulkAssignGroups"><span class="type-signature">(constant) </span>bulkAssignGroups<span class="type-signature"></span></h4>
 
 
@@ -1010,7 +1073,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line319">line 319</a>
+        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line362">line 362</a>
     </li></ul></dd>
     
 
@@ -1072,7 +1135,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line213">line 213</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line219">line 219</a>
     </li></ul></dd>
     
 
@@ -1197,7 +1260,7 @@ Handles bulk attendance records from kiosk with conflict resolution
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line94">line 94</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line95">line 95</a>
     </li></ul></dd>
     
 
@@ -1260,6 +1323,196 @@ Handles bulk attendance records from kiosk with conflict resolution
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
         <a href="lib_helpers.js.html">lib/helpers.js</a>, <a href="lib_helpers.js.html#line96">line 96</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="canAccessRecord"><span class="type-signature">(constant) </span>canAccessRecord<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Verify user can access a specific record by scope
+Returns: boolean
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_scope-helpers.js.html">lib/scope-helpers.js</a>, <a href="lib_scope-helpers.js.html#line60">line 60</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="canCommunicate"><span class="type-signature">(constant) </span>canCommunicate<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Verify communication is downward only
+National can message anyone
+Others can only message descendants
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="middleware_scope-validator.js.html">middleware/scope-validator.js</a>, <a href="middleware_scope-validator.js.html#line247">line 247</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="canManageUser"><span class="type-signature">(constant) </span>canManageUser<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Verify user can manage another user (downward only)
+Cannot manage self, cannot manage upward/sideways
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="middleware_scope-validator.js.html">middleware/scope-validator.js</a>, <a href="middleware_scope-validator.js.html#line205">line 205</a>
     </li></ul></dd>
     
 
@@ -1445,7 +1698,7 @@ Handles bulk attendance records from kiosk with conflict resolution
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line664">line 664</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line681">line 681</a>
     </li></ul></dd>
     
 
@@ -1507,7 +1760,7 @@ Handles bulk attendance records from kiosk with conflict resolution
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line261">line 261</a>
+        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line256">line 256</a>
     </li></ul></dd>
     
 
@@ -1693,7 +1946,7 @@ Handles bulk attendance records from kiosk with conflict resolution
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line18">line 18</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line19">line 19</a>
     </li></ul></dd>
     
 
@@ -1817,7 +2070,7 @@ Handles bulk attendance records from kiosk with conflict resolution
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line43">line 43</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line44">line 44</a>
     </li></ul></dd>
     
 
@@ -1941,7 +2194,7 @@ Handles bulk attendance records from kiosk with conflict resolution
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line136">line 136</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line162">line 162</a>
     </li></ul></dd>
     
 
@@ -2748,7 +3001,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line180">line 180</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line183">line 183</a>
     </li></ul></dd>
     
 
@@ -3058,7 +3311,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line19">line 19</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line20">line 20</a>
     </li></ul></dd>
     
 
@@ -3306,7 +3559,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line50">line 50</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line75">line 75</a>
     </li></ul></dd>
     
 
@@ -3616,7 +3869,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_registrations_controller.js.html">modules/registrations/controller.js</a>, <a href="modules_registrations_controller.js.html#line20">line 20</a>
+        <a href="modules_registrations_controller.js.html">modules/registrations/controller.js</a>, <a href="modules_registrations_controller.js.html#line21">line 21</a>
     </li></ul></dd>
     
 
@@ -3864,7 +4117,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line72">line 72</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line71">line 71</a>
     </li></ul></dd>
     
 
@@ -4112,7 +4365,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line407">line 407</a>
+        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line450">line 450</a>
     </li></ul></dd>
     
 
@@ -4174,7 +4427,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line258">line 258</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line264">line 264</a>
     </li></ul></dd>
     
 
@@ -4298,7 +4551,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line253">line 253</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line279">line 279</a>
     </li></ul></dd>
     
 
@@ -4484,7 +4737,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line420">line 420</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line419">line 419</a>
     </li></ul></dd>
     
 
@@ -4670,7 +4923,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line202">line 202</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line199">line 199</a>
     </li></ul></dd>
     
 
@@ -4998,6 +5251,69 @@ Admin only - Clear old audit logs
 
         
             
+<h4 class="name" id="filterByScope"><span class="type-signature">(constant) </span>filterByScope<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Filter a list of records by user's scope
+Returns: filtered array
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_scope-helpers.js.html">lib/scope-helpers.js</a>, <a href="lib_scope-helpers.js.html#line41">line 41</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
 <h4 class="name" id="forgotPasswordHandler"><span class="type-signature">(constant) </span>forgotPasswordHandler<span class="type-signature"></span></h4>
 
 
@@ -5042,7 +5358,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line215">line 215</a>
+        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line210">line 210</a>
     </li></ul></dd>
     
 
@@ -5228,7 +5544,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line241">line 241</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line244">line 244</a>
     </li></ul></dd>
     
 
@@ -5618,6 +5934,69 @@ Admin only - Clear old audit logs
 
         
             
+<h4 class="name" id="getAdminScope"><span class="type-signature">(constant) </span>getAdminScope<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Get admin's effective scope (what they can access)
+Returns: { unitId, isGlobal, level, hierarchy }
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="middleware_scope-validator.js.html">middleware/scope-validator.js</a>, <a href="middleware_scope-validator.js.html#line11">line 11</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
 <h4 class="name" id="getAllAncestorIds"><span class="type-signature">(constant) </span>getAllAncestorIds<span class="type-signature"></span></h4>
 
 
@@ -5662,7 +6041,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line48">line 48</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line47">line 47</a>
     </li></ul></dd>
     
 
@@ -5724,7 +6103,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line27">line 27</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line26">line 26</a>
     </li></ul></dd>
     
 
@@ -5786,7 +6165,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line199">line 199</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line225">line 225</a>
     </li></ul></dd>
     
 
@@ -6158,7 +6537,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line148">line 148</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line151">line 151</a>
     </li></ul></dd>
     
 
@@ -6530,7 +6909,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line350">line 350</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line349">line 349</a>
     </li></ul></dd>
     
 
@@ -6778,7 +7157,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line201">line 201</a>
+        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line196">line 196</a>
     </li></ul></dd>
     
 
@@ -6840,7 +7219,7 @@ Admin only - Clear old audit logs
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_reports_controller.js.html">modules/reports/controller.js</a>, <a href="modules_reports_controller.js.html#line16">line 16</a>
+        <a href="modules_reports_controller.js.html">modules/reports/controller.js</a>, <a href="modules_reports_controller.js.html#line15">line 15</a>
     </li></ul></dd>
     
 
@@ -7089,6 +7468,69 @@ Admin only - Clear old audit logs
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
         <a href="lib_helpers.js.html">lib/helpers.js</a>, <a href="lib_helpers.js.html#line118">line 118</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="getEffectiveScope"><span class="type-signature">(constant) </span>getEffectiveScope<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    DEPRECATED: Use getAdminScope from scope-validator.js instead
+Kept for backward compatibility
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="modules_users_service.js.html">modules/users/service.js</a>, <a href="modules_users_service.js.html#line12">line 12</a>
     </li></ul></dd>
     
 
@@ -7461,7 +7903,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line119">line 119</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line120">line 120</a>
     </li></ul></dd>
     
 
@@ -7585,7 +8027,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line104">line 104</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line101">line 101</a>
     </li></ul></dd>
     
 
@@ -7771,7 +8213,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line173">line 173</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line170">line 170</a>
     </li></ul></dd>
     
 
@@ -7833,7 +8275,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_registrations_service.js.html">modules/registrations/service.js</a>, <a href="modules_registrations_service.js.html#line566">line 566</a>
+        <a href="modules_registrations_service.js.html">modules/registrations/service.js</a>, <a href="modules_registrations_service.js.html#line569">line 569</a>
     </li></ul></dd>
     
 
@@ -8019,7 +8461,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line104">line 104</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line110">line 110</a>
     </li></ul></dd>
     
 
@@ -8081,7 +8523,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line266">line 266</a>
+        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line309">line 309</a>
     </li></ul></dd>
     
 
@@ -8143,7 +8585,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line143">line 143</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line149">line 149</a>
     </li></ul></dd>
     
 
@@ -8205,7 +8647,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line299">line 299</a>
+        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line342">line 342</a>
     </li></ul></dd>
     
 
@@ -8267,7 +8709,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line244">line 244</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line250">line 250</a>
     </li></ul></dd>
     
 
@@ -8515,7 +8957,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line211">line 211</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line214">line 214</a>
     </li></ul></dd>
     
 
@@ -8825,7 +9267,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line128">line 128</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line154">line 154</a>
     </li></ul></dd>
     
 
@@ -9011,7 +9453,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line114">line 114</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line140">line 140</a>
     </li></ul></dd>
     
 
@@ -9959,6 +10401,69 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
 
         
             
+<h4 class="name" id="getScopeFilter"><span class="type-signature">(constant) </span>getScopeFilter<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Automatically filter query results by scope
+Returns: where clause for Prisma
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="middleware_scope-validator.js.html">middleware/scope-validator.js</a>, <a href="middleware_scope-validator.js.html#line180">line 180</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
 <h4 class="name" id="getStateAnalytics"><span class="type-signature">(constant) </span>getStateAnalytics<span class="type-signature"></span></h4>
 
 
@@ -10189,7 +10694,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line167">line 167</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line166">line 166</a>
     </li></ul></dd>
     
 
@@ -10313,7 +10818,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line309">line 309</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line308">line 308</a>
     </li></ul></dd>
     
 
@@ -10375,7 +10880,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line386">line 386</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line385">line 385</a>
     </li></ul></dd>
     
 
@@ -10499,7 +11004,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line401">line 401</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line400">line 400</a>
     </li></ul></dd>
     
 
@@ -10747,7 +11252,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line511">line 511</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line528">line 528</a>
     </li></ul></dd>
     
 
@@ -11137,6 +11642,69 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
 
         
             
+<h4 class="name" id="isAccessViolation"><span class="type-signature">(constant) </span>isAccessViolation<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Verify admin is NOT trying to access parent/sibling
+Returns: boolean (true if trying to access upward/sideways)
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="middleware_scope-validator.js.html">middleware/scope-validator.js</a>, <a href="middleware_scope-validator.js.html#line101">line 101</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
 <h4 class="name" id="isCenterAdmin"><span class="type-signature">(constant) </span>isCenterAdmin<span class="type-signature"></span></h4>
 
 
@@ -11430,6 +11998,69 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
         <a href="modules_events_service.js.html">modules/events/service.js</a>, <a href="modules_events_service.js.html#line395">line 395</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="isWithinScope"><span class="type-signature">(constant) </span>isWithinScope<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Check if target unit is within user's scope (downward only)
+Returns: boolean
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="middleware_scope-validator.js.html">middleware/scope-validator.js</a>, <a href="middleware_scope-validator.js.html#line78">line 78</a>
     </li></ul></dd>
     
 
@@ -11801,7 +12432,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line62">line 62</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line61">line 61</a>
     </li></ul></dd>
     
 
@@ -12049,7 +12680,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line76">line 76</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line101">line 101</a>
     </li></ul></dd>
     
 
@@ -12235,7 +12866,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_registrations_controller.js.html">modules/registrations/controller.js</a>, <a href="modules_registrations_controller.js.html#line47">line 47</a>
+        <a href="modules_registrations_controller.js.html">modules/registrations/controller.js</a>, <a href="modules_registrations_controller.js.html#line46">line 46</a>
     </li></ul></dd>
     
 
@@ -12483,7 +13114,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line196">line 196</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line195">line 195</a>
     </li></ul></dd>
     
 
@@ -12793,7 +13424,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line182">line 182</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line208">line 208</a>
     </li></ul></dd>
     
 
@@ -12855,7 +13486,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line159">line 159</a>
+        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line154">line 154</a>
     </li></ul></dd>
     
 
@@ -12917,7 +13548,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line495">line 495</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line512">line 512</a>
     </li></ul></dd>
     
 
@@ -12979,7 +13610,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_registrations_service.js.html">modules/registrations/service.js</a>, <a href="modules_registrations_service.js.html#line614">line 614</a>
+        <a href="modules_registrations_service.js.html">modules/registrations/service.js</a>, <a href="modules_registrations_service.js.html#line617">line 617</a>
     </li></ul></dd>
     
 
@@ -13351,7 +13982,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line158">line 158</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line155">line 155</a>
     </li></ul></dd>
     
 
@@ -13475,7 +14106,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line450">line 450</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line467">line 467</a>
     </li></ul></dd>
     
 
@@ -13537,7 +14168,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line174">line 174</a>
+        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line169">line 169</a>
     </li></ul></dd>
     
 
@@ -13909,7 +14540,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line239">line 239</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line265">line 265</a>
     </li></ul></dd>
     
 
@@ -13971,7 +14602,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line226">line 226</a>
+        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line269">line 269</a>
     </li></ul></dd>
     
 
@@ -14033,7 +14664,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line379">line 379</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line378">line 378</a>
     </li></ul></dd>
     
 
@@ -14095,7 +14726,7 @@ Returns: registrations by mode, attendance by mode, capacity utilization by cent
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line193">line 193</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line199">line 199</a>
     </li></ul></dd>
     
 
@@ -14344,7 +14975,7 @@ Resolves identifier (Email/Phone/FCS Code) to user and sends OTP
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line564">line 564</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line581">line 581</a>
     </li></ul></dd>
     
 
@@ -14425,6 +15056,69 @@ Sets timeout for all requests and handles timeout errors
 
         
             
+<h4 class="name" id="requireScope"><span class="type-signature">(constant) </span>requireScope<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Middleware: Enforce scope on resource
+Usage: app.get('/api/events/:id', requireScope('unitId'), handler)
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="middleware_scope-validator.js.html">middleware/scope-validator.js</a>, <a href="middleware_scope-validator.js.html#line138">line 138</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
 <h4 class="name" id="resetPassword"><span class="type-signature">(constant) </span>resetPassword<span class="type-signature"></span></h4>
 
 
@@ -14469,7 +15163,7 @@ Sets timeout for all requests and handles timeout errors
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line610">line 610</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line627">line 627</a>
     </li></ul></dd>
     
 
@@ -14531,7 +15225,70 @@ Sets timeout for all requests and handles timeout errors
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line237">line 237</a>
+        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line232">line 232</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="scopedWhere"><span class="type-signature">(constant) </span>scopedWhere<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Build WHERE clause that filters by user's scope
+Usage: const events = prisma.event.findMany({ where: await scopedWhere(userId, 'unitId') })
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="lib_scope-helpers.js.html">lib/scope-helpers.js</a>, <a href="lib_scope-helpers.js.html#line13">line 13</a>
     </li></ul></dd>
     
 
@@ -14658,7 +15415,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line271">line 271</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line297">line 297</a>
     </li></ul></dd>
     
 
@@ -14844,7 +15601,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_mail.js.html">lib/mail.js</a>, <a href="lib_mail.js.html#line45">line 45</a>
+        <a href="lib_mail.js.html">lib/mail.js</a>, <a href="lib_mail.js.html#line39">line 39</a>
     </li></ul></dd>
     
 
@@ -15030,7 +15787,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line268">line 268</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line294">line 294</a>
     </li></ul></dd>
     
 
@@ -15836,7 +16593,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line118">line 118</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line115">line 115</a>
     </li></ul></dd>
     
 
@@ -15960,7 +16717,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line187">line 187</a>
+        <a href="modules_events_controller.js.html">modules/events/controller.js</a>, <a href="modules_events_controller.js.html#line184">line 184</a>
     </li></ul></dd>
     
 
@@ -16022,7 +16779,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line117">line 117</a>
+        <a href="modules_groups_service.js.html">modules/groups/service.js</a>, <a href="modules_groups_service.js.html#line160">line 160</a>
     </li></ul></dd>
     
 
@@ -16084,7 +16841,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line118">line 118</a>
+        <a href="modules_groups_controller.js.html">modules/groups/controller.js</a>, <a href="modules_groups_controller.js.html#line124">line 124</a>
     </li></ul></dd>
     
 
@@ -16208,7 +16965,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line142">line 142</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line168">line 168</a>
     </li></ul></dd>
     
 
@@ -16332,7 +17089,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line168">line 168</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line194">line 194</a>
     </li></ul></dd>
     
 
@@ -16704,7 +17461,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line263">line 263</a>
+        <a href="modules_units_service.js.html">modules/units/service.js</a>, <a href="modules_units_service.js.html#line262">line 262</a>
     </li></ul></dd>
     
 
@@ -16890,7 +17647,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line267">line 267</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line270">line 270</a>
     </li></ul></dd>
     
 
@@ -17014,7 +17771,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line68">line 68</a>
+        <a href="modules_attendance_controller.js.html">modules/attendance/controller.js</a>, <a href="modules_attendance_controller.js.html#line69">line 69</a>
     </li></ul></dd>
     
 
@@ -17076,7 +17833,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line390">line 390</a>
+        <a href="modules_auth_service.js.html">modules/auth/service.js</a>, <a href="modules_auth_service.js.html#line407">line 407</a>
     </li></ul></dd>
     
 
@@ -17138,7 +17895,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line133">line 133</a>
+        <a href="modules_auth_controller.js.html">modules/auth/controller.js</a>, <a href="modules_auth_controller.js.html#line128">line 128</a>
     </li></ul></dd>
     
 
@@ -17200,7 +17957,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="lib_mail.js.html">lib/mail.js</a>, <a href="lib_mail.js.html#line25">line 25</a>
+        <a href="lib_mail.js.html">lib/mail.js</a>, <a href="lib_mail.js.html#line24">line 24</a>
     </li></ul></dd>
     
 
@@ -17643,6 +18400,7 @@ Supports two modes:
 
 <div class="description">
     Handle image upload for member profile
+Non-blocking: fails gracefully without blocking profile update
 </div>
 
 
@@ -17686,7 +18444,7 @@ Supports two modes:
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line23">line 23</a>
+        <a href="modules_members_controller.js.html">modules/members/controller.js</a>, <a href="modules_members_controller.js.html#line24">line 24</a>
     </li></ul></dd>
     
 
@@ -18091,13 +18849,13 @@ Verifies connection and checks if migrations are needed
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addCenterAdmin">addCenterAdmin</a></li><li><a href="global.html#addCenterAdminHandler">addCenterAdminHandler</a></li><li><a href="global.html#addGuardian">addGuardian</a></li><li><a href="global.html#addGuardianHandler">addGuardianHandler</a></li><li><a href="global.html#addMemberHandler">addMemberHandler</a></li><li><a href="global.html#addMemberToUnit">addMemberToUnit</a></li><li><a href="global.html#assignCenter">assignCenter</a></li><li><a href="global.html#assignCenterHandler">assignCenterHandler</a></li><li><a href="global.html#assignGroup">assignGroup</a></li><li><a href="global.html#assignGroupHandler">assignGroupHandler</a></li><li><a href="global.html#assignMemberHandler">assignMemberHandler</a></li><li><a href="global.html#assignMemberToGroup">assignMemberToGroup</a></li><li><a href="global.html#assignRoleHandler">assignRoleHandler</a></li><li><a href="global.html#assignRoleToUser">assignRoleToUser</a></li><li><a href="global.html#bulkAssignGroups">bulkAssignGroups</a></li><li><a href="global.html#bulkAssignHandler">bulkAssignHandler</a></li><li><a href="global.html#bulkSyncAttendance">bulkSyncAttendance</a></li><li><a href="global.html#bulkSyncHandler">bulkSyncHandler</a></li><li><a href="global.html#calculateAttendanceRate">calculateAttendanceRate</a></li><li><a href="global.html#cancelRegistration">cancelRegistration</a></li><li><a href="global.html#cancelRegistrationHandler">cancelRegistrationHandler</a></li><li><a href="global.html#changePassword">changePassword</a></li><li><a href="global.html#changePasswordHandler">changePasswordHandler</a></li><li><a href="global.html#checkDatabaseTables">checkDatabaseTables</a></li><li><a href="global.html#checkExistence">checkExistence</a></li><li><a href="global.html#checkIn">checkIn</a></li><li><a href="global.html#checkInHandler">checkInHandler</a></li><li><a href="global.html#checkOut">checkOut</a></li><li><a href="global.html#checkOutHandler">checkOutHandler</a></li><li><a href="global.html#checkPermissionHandler">checkPermissionHandler</a></li><li><a href="global.html#checkUserExistence">checkUserExistence</a></li><li><a href="global.html#checkUserPermission">checkUserPermission</a></li><li><a href="global.html#cleanupOldLogsHandler">cleanupOldLogsHandler</a></li><li><a href="global.html#clearIdempotencyCache">clearIdempotencyCache</a></li><li><a href="global.html#clearOldAuditLogs">clearOldAuditLogs</a></li><li><a href="global.html#cloudinaryDelete">cloudinaryDelete</a></li><li><a href="global.html#cloudinaryUpload">cloudinaryUpload</a></li><li><a href="global.html#cloudinaryUploadAudio">cloudinaryUploadAudio</a></li><li><a href="global.html#cloudinaryUploadDocument">cloudinaryUploadDocument</a></li><li><a href="global.html#cloudinaryUploadImage">cloudinaryUploadImage</a></li><li><a href="global.html#cloudinaryUploadVideo">cloudinaryUploadVideo</a></li><li><a href="global.html#comparePassword">comparePassword</a></li><li><a href="global.html#convertAuditLogsToCSV">convertAuditLogsToCSV</a></li><li><a href="global.html#convertReportToCSV">convertReportToCSV</a></li><li><a href="global.html#correctAttendance">correctAttendance</a></li><li><a href="global.html#correctAttendanceHandler">correctAttendanceHandler</a></li><li><a href="global.html#createAuditLog">createAuditLog</a></li><li><a href="global.html#createCenter">createCenter</a></li><li><a href="global.html#createCenterHandler">createCenterHandler</a></li><li><a href="global.html#createEvent">createEvent</a></li><li><a href="global.html#createEventHandler">createEventHandler</a></li><li><a href="global.html#createGroup">createGroup</a></li><li><a href="global.html#createGroupHandler">createGroupHandler</a></li><li><a href="global.html#createMember">createMember</a></li><li><a href="global.html#createMemberHandler">createMemberHandler</a></li><li><a href="global.html#createNotificationTrigger">createNotificationTrigger</a></li><li><a href="global.html#createPredefinedRoles">createPredefinedRoles</a></li><li><a href="global.html#createRateLimiters">createRateLimiters</a></li><li><a href="global.html#createRegistration">createRegistration</a></li><li><a href="global.html#createRegistrationHandler">createRegistrationHandler</a></li><li><a href="global.html#createRole">createRole</a></li><li><a href="global.html#createRoleHandler">createRoleHandler</a></li><li><a href="global.html#createTriggerHandler">createTriggerHandler</a></li><li><a href="global.html#createUnit">createUnit</a></li><li><a href="global.html#createUnitHandler">createUnitHandler</a></li><li><a href="global.html#deactivateCenter">deactivateCenter</a></li><li><a href="global.html#deactivateCenterHandler">deactivateCenterHandler</a></li><li><a href="global.html#deactivateGroup">deactivateGroup</a></li><li><a href="global.html#deactivateGroupHandler">deactivateGroupHandler</a></li><li><a href="global.html#deactivateMember">deactivateMember</a></li><li><a href="global.html#deactivateMemberHandler">deactivateMemberHandler</a></li><li><a href="global.html#deactivateRole">deactivateRole</a></li><li><a href="global.html#deactivateRoleHandler">deactivateRoleHandler</a></li><li><a href="global.html#deactivateUnit">deactivateUnit</a></li><li><a href="global.html#deactivateUnitHandler">deactivateUnitHandler</a></li><li><a href="global.html#deleteEvent">deleteEvent</a></li><li><a href="global.html#deleteEventHandler">deleteEventHandler</a></li><li><a href="global.html#downloadTagHandler">downloadTagHandler</a></li><li><a href="global.html#exportAuditLogs">exportAuditLogs</a></li><li><a href="global.html#exportAuditLogsHandler">exportAuditLogsHandler</a></li><li><a href="global.html#exportEventReport">exportEventReport</a></li><li><a href="global.html#exportEventReportHandler">exportEventReportHandler</a></li><li><a href="global.html#forgotPasswordHandler">forgotPasswordHandler</a></li><li><a href="global.html#formatPaginatedResponse">formatPaginatedResponse</a></li><li><a href="global.html#generateAttendanceCode">generateAttendanceCode</a></li><li><a href="global.html#generateCodeHandler">generateCodeHandler</a></li><li><a href="global.html#generateFCSCode">generateFCSCode</a></li><li><a href="global.html#generateOTP">generateOTP</a></li><li><a href="global.html#generateSignedUrl">generateSignedUrl</a></li><li><a href="global.html#generateTagPdf">generateTagPdf</a></li><li><a href="global.html#generateToken">generateToken</a></li><li><a href="global.html#generateUUID">generateUUID</a></li><li><a href="global.html#getAllAncestorIds">getAllAncestorIds</a></li><li><a href="global.html#getAllDescendantIds">getAllDescendantIds</a></li><li><a href="global.html#getAttendanceSummaryHandler">getAttendanceSummaryHandler</a></li><li><a href="global.html#getAuditLogsByRange">getAuditLogsByRange</a></li><li><a href="global.html#getAuditLogsHandler">getAuditLogsHandler</a></li><li><a href="global.html#getCenterAnalytics">getCenterAnalytics</a></li><li><a href="global.html#getCenterAnalyticsHandler">getCenterAnalyticsHandler</a></li><li><a href="global.html#getCenterAttendance">getCenterAttendance</a></li><li><a href="global.html#getCenterAttendanceHandler">getCenterAttendanceHandler</a></li><li><a href="global.html#getCenterById">getCenterById</a></li><li><a href="global.html#getCenterHandler">getCenterHandler</a></li><li><a href="global.html#getCenterStatistics">getCenterStatistics</a></li><li><a href="global.html#getCenterStatisticsHandler">getCenterStatisticsHandler</a></li><li><a href="global.html#getCentersByState">getCentersByState</a></li><li><a href="global.html#getChildUnits">getChildUnits</a></li><li><a href="global.html#getChildUnitsHandler">getChildUnitsHandler</a></li><li><a href="global.html#getComplianceReport">getComplianceReport</a></li><li><a href="global.html#getComplianceReportHandler">getComplianceReportHandler</a></li><li><a href="global.html#getCurrentUser">getCurrentUser</a></li><li><a href="global.html#getDashboardHandler">getDashboardHandler</a></li><li><a href="global.html#getDashboardSummary">getDashboardSummary</a></li><li><a href="global.html#getDataChangeHistory">getDataChangeHistory</a></li><li><a href="global.html#getDataChangeHistoryHandler">getDataChangeHistoryHandler</a></li><li><a href="global.html#getDateRangeQuery">getDateRangeQuery</a></li><li><a href="global.html#getEntityAuditTrail">getEntityAuditTrail</a></li><li><a href="global.html#getEntityAuditTrailHandler">getEntityAuditTrailHandler</a></li><li><a href="global.html#getEventAnalytics">getEventAnalytics</a></li><li><a href="global.html#getEventAnalyticsHandler">getEventAnalyticsHandler</a></li><li><a href="global.html#getEventAttendance">getEventAttendance</a></li><li><a href="global.html#getEventAttendanceHandler">getEventAttendanceHandler</a></li><li><a href="global.html#getEventById">getEventById</a></li><li><a href="global.html#getEventHandler">getEventHandler</a></li><li><a href="global.html#getEventRegistrationsHandler">getEventRegistrationsHandler</a></li><li><a href="global.html#getEventStatistics">getEventStatistics</a></li><li><a href="global.html#getEventStatisticsHandler">getEventStatisticsHandler</a></li><li><a href="global.html#getGlobalRegistrationsStats">getGlobalRegistrationsStats</a></li><li><a href="global.html#getGlobalRegistrationsStatsHandler">getGlobalRegistrationsStatsHandler</a></li><li><a href="global.html#getGroupById">getGroupById</a></li><li><a href="global.html#getGroupHandler">getGroupHandler</a></li><li><a href="global.html#getGroupMembers">getGroupMembers</a></li><li><a href="global.html#getGroupMembersHandler">getGroupMembersHandler</a></li><li><a href="global.html#getGroupStatistics">getGroupStatistics</a></li><li><a href="global.html#getGroupStatsHandler">getGroupStatsHandler</a></li><li><a href="global.html#getHierarchyHandler">getHierarchyHandler</a></li><li><a href="global.html#getHistoryHandler">getHistoryHandler</a></li><li><a href="global.html#getMemberAttendance">getMemberAttendance</a></li><li><a href="global.html#getMemberAttendanceHandler">getMemberAttendanceHandler</a></li><li><a href="global.html#getMemberAttendanceReport">getMemberAttendanceReport</a></li><li><a href="global.html#getMemberAttendanceReportHandler">getMemberAttendanceReportHandler</a></li><li><a href="global.html#getMemberAttendanceSummary">getMemberAttendanceSummary</a></li><li><a href="global.html#getMemberByAuthId">getMemberByAuthId</a></li><li><a href="global.html#getMemberByCodeHandler">getMemberByCodeHandler</a></li><li><a href="global.html#getMemberByFCSCode">getMemberByFCSCode</a></li><li><a href="global.html#getMemberById">getMemberById</a></li><li><a href="global.html#getMemberHandler">getMemberHandler</a></li><li><a href="global.html#getMemberRegistrations">getMemberRegistrations</a></li><li><a href="global.html#getMemberRegistrationsHandler">getMemberRegistrationsHandler</a></li><li><a href="global.html#getNotificationHistory">getNotificationHistory</a></li><li><a href="global.html#getNotificationTrigger">getNotificationTrigger</a></li><li><a href="global.html#getPaginationParams">getPaginationParams</a></li><li><a href="global.html#getPermissionGroups">getPermissionGroups</a></li><li><a href="global.html#getPermissionGroupsHandler">getPermissionGroupsHandler</a></li><li><a href="global.html#getRegistrarStatisticsHandler">getRegistrarStatisticsHandler</a></li><li><a href="global.html#getRegistrationById">getRegistrationById</a></li><li><a href="global.html#getRegistrationHandler">getRegistrationHandler</a></li><li><a href="global.html#getRegistrationsByEvent">getRegistrationsByEvent</a></li><li><a href="global.html#getRoleById">getRoleById</a></li><li><a href="global.html#getRoleHandler">getRoleHandler</a></li><li><a href="global.html#getRoleUsers">getRoleUsers</a></li><li><a href="global.html#getRoleUsersHandler">getRoleUsersHandler</a></li><li><a href="global.html#getStateAnalytics">getStateAnalytics</a></li><li><a href="global.html#getStateAnalyticsHandler">getStateAnalyticsHandler</a></li><li><a href="global.html#getTriggerHandler">getTriggerHandler</a></li><li><a href="global.html#getUnitById">getUnitById</a></li><li><a href="global.html#getUnitHandler">getUnitHandler</a></li><li><a href="global.html#getUnitHierarchy">getUnitHierarchy</a></li><li><a href="global.html#getUnitMembers">getUnitMembers</a></li><li><a href="global.html#getUnitMembersHandler">getUnitMembersHandler</a></li><li><a href="global.html#getUnitStatistics">getUnitStatistics</a></li><li><a href="global.html#getUnitStatsHandler">getUnitStatsHandler</a></li><li><a href="global.html#getUserAuditTrail">getUserAuditTrail</a></li><li><a href="global.html#getUserAuditTrailHandler">getUserAuditTrailHandler</a></li><li><a href="global.html#getUserById">getUserById</a></li><li><a href="global.html#getUserPermissions">getUserPermissions</a></li><li><a href="global.html#getUserPermissionsHandler">getUserPermissionsHandler</a></li><li><a href="global.html#getUserRoles">getUserRoles</a></li><li><a href="global.html#getUserRolesHandler">getUserRolesHandler</a></li><li><a href="global.html#handleProfileImageUpload">handleProfileImageUpload</a></li><li><a href="global.html#hashPassword">hashPassword</a></li><li><a href="global.html#initPredefinedRolesHandler">initPredefinedRolesHandler</a></li><li><a href="global.html#initializeDatabase">initializeDatabase</a></li><li><a href="global.html#isCenterAdmin">isCenterAdmin</a></li><li><a href="global.html#isDateInFuture">isDateInFuture</a></li><li><a href="global.html#isDateInPast">isDateInPast</a></li><li><a href="global.html#isEventHappening">isEventHappening</a></li><li><a href="global.html#isRegistrationOpen">isRegistrationOpen</a></li><li><a href="global.html#listActiveCenters">listActiveCenters</a></li><li><a href="global.html#listActiveCentersHandler">listActiveCentersHandler</a></li><li><a href="global.html#listCentersByEvent">listCentersByEvent</a></li><li><a href="global.html#listCentersHandler">listCentersHandler</a></li><li><a href="global.html#listEvents">listEvents</a></li><li><a href="global.html#listEventsHandler">listEventsHandler</a></li><li><a href="global.html#listGroupsByEvent">listGroupsByEvent</a></li><li><a href="global.html#listGroupsHandler">listGroupsHandler</a></li><li><a href="global.html#listMembers">listMembers</a></li><li><a href="global.html#listMembersHandler">listMembersHandler</a></li><li><a href="global.html#listNotificationTriggers">listNotificationTriggers</a></li><li><a href="global.html#listRegistrations">listRegistrations</a></li><li><a href="global.html#listRegistrationsHandler">listRegistrationsHandler</a></li><li><a href="global.html#listRoles">listRoles</a></li><li><a href="global.html#listRolesHandler">listRolesHandler</a></li><li><a href="global.html#listTriggersHandler">listTriggersHandler</a></li><li><a href="global.html#listUnits">listUnits</a></li><li><a href="global.html#listUnitsHandler">listUnitsHandler</a></li><li><a href="global.html#logEntityChange">logEntityChange</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#loginUser">loginUser</a></li><li><a href="global.html#logout">logout</a></li><li><a href="global.html#logoutUser">logoutUser</a></li><li><a href="global.html#markAttendance">markAttendance</a></li><li><a href="global.html#markAttendanceHandler">markAttendanceHandler</a></li><li><a href="global.html#markDeliveredHandler">markDeliveredHandler</a></li><li><a href="global.html#markNotificationAsDelivered">markNotificationAsDelivered</a></li><li><a href="global.html#normalizePhoneNumber">normalizePhoneNumber</a></li><li><a href="global.html#publishEvent">publishEvent</a></li><li><a href="global.html#publishEventHandler">publishEventHandler</a></li><li><a href="global.html#queueNotificationJob">queueNotificationJob</a></li><li><a href="global.html#rateLimitErrorHandler">rateLimitErrorHandler</a></li><li><a href="global.html#refreshToken">refreshToken</a></li><li><a href="global.html#refreshTokenHandler">refreshTokenHandler</a></li><li><a href="global.html#register">register</a></li><li><a href="global.html#registerUser">registerUser</a></li><li><a href="global.html#removeCenterAdmin">removeCenterAdmin</a></li><li><a href="global.html#removeCenterAdminHandler">removeCenterAdminHandler</a></li><li><a href="global.html#removeGuardian">removeGuardian</a></li><li><a href="global.html#removeGuardianHandler">removeGuardianHandler</a></li><li><a href="global.html#removeMemberFromGroup">removeMemberFromGroup</a></li><li><a href="global.html#removeMemberFromUnit">removeMemberFromUnit</a></li><li><a href="global.html#removeMemberHandler">removeMemberHandler</a></li><li><a href="global.html#removeRoleFromUser">removeRoleFromUser</a></li><li><a href="global.html#removeRoleHandler">removeRoleHandler</a></li><li><a href="global.html#requestPasswordReset">requestPasswordReset</a></li><li><a href="global.html#requestTimeout">requestTimeout</a></li><li><a href="global.html#resetPassword">resetPassword</a></li><li><a href="global.html#resetPasswordHandler">resetPasswordHandler</a></li><li><a href="global.html#searchMembers">searchMembers</a></li><li><a href="global.html#searchMembersHandler">searchMembersHandler</a></li><li><a href="global.html#sendBatchHandler">sendBatchHandler</a></li><li><a href="global.html#sendBatchNotifications">sendBatchNotifications</a></li><li><a href="global.html#sendMail">sendMail</a></li><li><a href="global.html#sendNotification">sendNotification</a></li><li><a href="global.html#sendNotificationHandler">sendNotificationHandler</a></li><li><a href="global.html#sendOTP">sendOTP</a></li><li><a href="global.html#socketTimeout">socketTimeout</a></li><li><a href="global.html#testDatabaseConnection">testDatabaseConnection</a></li><li><a href="global.html#triggerCenterAssignmentHandler">triggerCenterAssignmentHandler</a></li><li><a href="global.html#triggerCenterAssignmentNotifications">triggerCenterAssignmentNotifications</a></li><li><a href="global.html#triggerEventReminderHandler">triggerEventReminderHandler</a></li><li><a href="global.html#triggerEventReminderNotifications">triggerEventReminderNotifications</a></li><li><a href="global.html#triggerGroupAssignmentHandler">triggerGroupAssignmentHandler</a></li><li><a href="global.html#triggerGroupAssignmentNotifications">triggerGroupAssignmentNotifications</a></li><li><a href="global.html#triggerRegistrationHandler">triggerRegistrationHandler</a></li><li><a href="global.html#triggerRegistrationNotifications">triggerRegistrationNotifications</a></li><li><a href="global.html#updateCenter">updateCenter</a></li><li><a href="global.html#updateCenterHandler">updateCenterHandler</a></li><li><a href="global.html#updateEvent">updateEvent</a></li><li><a href="global.html#updateEventHandler">updateEventHandler</a></li><li><a href="global.html#updateEventSettings">updateEventSettings</a></li><li><a href="global.html#updateEventSettingsHandler">updateEventSettingsHandler</a></li><li><a href="global.html#updateGroup">updateGroup</a></li><li><a href="global.html#updateGroupHandler">updateGroupHandler</a></li><li><a href="global.html#updateMember">updateMember</a></li><li><a href="global.html#updateMemberHandler">updateMemberHandler</a></li><li><a href="global.html#updateNotificationTrigger">updateNotificationTrigger</a></li><li><a href="global.html#updateProfileHandler">updateProfileHandler</a></li><li><a href="global.html#updateRegistrationStatus">updateRegistrationStatus</a></li><li><a href="global.html#updateRegistrationStatusHandler">updateRegistrationStatusHandler</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateRoleHandler">updateRoleHandler</a></li><li><a href="global.html#updateTriggerHandler">updateTriggerHandler</a></li><li><a href="global.html#updateUnit">updateUnit</a></li><li><a href="global.html#updateUnitHandler">updateUnitHandler</a></li><li><a href="global.html#validateAttendanceCode">validateAttendanceCode</a></li><li><a href="global.html#validateCodeHandler">validateCodeHandler</a></li><li><a href="global.html#verifyAttendance">verifyAttendance</a></li><li><a href="global.html#verifyAttendanceHandler">verifyAttendanceHandler</a></li><li><a href="global.html#verifyOTP">verifyOTP</a></li><li><a href="global.html#verifyOTPHandler">verifyOTPHandler</a></li><li><a href="global.html#verifySmtp">verifySmtp</a></li><li><a href="global.html#verifyToken">verifyToken</a></li><li><a href="global.html#withTimeout">withTimeout</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Global</h3><ul><li><a href="global.html#addCenterAdmin">addCenterAdmin</a></li><li><a href="global.html#addCenterAdminHandler">addCenterAdminHandler</a></li><li><a href="global.html#addGuardian">addGuardian</a></li><li><a href="global.html#addGuardianHandler">addGuardianHandler</a></li><li><a href="global.html#addMemberHandler">addMemberHandler</a></li><li><a href="global.html#addMemberToUnit">addMemberToUnit</a></li><li><a href="global.html#assignCenter">assignCenter</a></li><li><a href="global.html#assignCenterHandler">assignCenterHandler</a></li><li><a href="global.html#assignGroup">assignGroup</a></li><li><a href="global.html#assignGroupHandler">assignGroupHandler</a></li><li><a href="global.html#assignMemberHandler">assignMemberHandler</a></li><li><a href="global.html#assignMemberToGroup">assignMemberToGroup</a></li><li><a href="global.html#assignRoleHandler">assignRoleHandler</a></li><li><a href="global.html#assignRoleToUser">assignRoleToUser</a></li><li><a href="global.html#buildScopedResponse">buildScopedResponse</a></li><li><a href="global.html#bulkAssignGroups">bulkAssignGroups</a></li><li><a href="global.html#bulkAssignHandler">bulkAssignHandler</a></li><li><a href="global.html#bulkSyncAttendance">bulkSyncAttendance</a></li><li><a href="global.html#bulkSyncHandler">bulkSyncHandler</a></li><li><a href="global.html#calculateAttendanceRate">calculateAttendanceRate</a></li><li><a href="global.html#canAccessRecord">canAccessRecord</a></li><li><a href="global.html#canCommunicate">canCommunicate</a></li><li><a href="global.html#canManageUser">canManageUser</a></li><li><a href="global.html#cancelRegistration">cancelRegistration</a></li><li><a href="global.html#cancelRegistrationHandler">cancelRegistrationHandler</a></li><li><a href="global.html#changePassword">changePassword</a></li><li><a href="global.html#changePasswordHandler">changePasswordHandler</a></li><li><a href="global.html#checkDatabaseTables">checkDatabaseTables</a></li><li><a href="global.html#checkExistence">checkExistence</a></li><li><a href="global.html#checkIn">checkIn</a></li><li><a href="global.html#checkInHandler">checkInHandler</a></li><li><a href="global.html#checkOut">checkOut</a></li><li><a href="global.html#checkOutHandler">checkOutHandler</a></li><li><a href="global.html#checkPermissionHandler">checkPermissionHandler</a></li><li><a href="global.html#checkUserExistence">checkUserExistence</a></li><li><a href="global.html#checkUserPermission">checkUserPermission</a></li><li><a href="global.html#cleanupOldLogsHandler">cleanupOldLogsHandler</a></li><li><a href="global.html#clearIdempotencyCache">clearIdempotencyCache</a></li><li><a href="global.html#clearOldAuditLogs">clearOldAuditLogs</a></li><li><a href="global.html#cloudinaryDelete">cloudinaryDelete</a></li><li><a href="global.html#cloudinaryUpload">cloudinaryUpload</a></li><li><a href="global.html#cloudinaryUploadAudio">cloudinaryUploadAudio</a></li><li><a href="global.html#cloudinaryUploadDocument">cloudinaryUploadDocument</a></li><li><a href="global.html#cloudinaryUploadImage">cloudinaryUploadImage</a></li><li><a href="global.html#cloudinaryUploadVideo">cloudinaryUploadVideo</a></li><li><a href="global.html#comparePassword">comparePassword</a></li><li><a href="global.html#convertAuditLogsToCSV">convertAuditLogsToCSV</a></li><li><a href="global.html#convertReportToCSV">convertReportToCSV</a></li><li><a href="global.html#correctAttendance">correctAttendance</a></li><li><a href="global.html#correctAttendanceHandler">correctAttendanceHandler</a></li><li><a href="global.html#createAuditLog">createAuditLog</a></li><li><a href="global.html#createCenter">createCenter</a></li><li><a href="global.html#createCenterHandler">createCenterHandler</a></li><li><a href="global.html#createEvent">createEvent</a></li><li><a href="global.html#createEventHandler">createEventHandler</a></li><li><a href="global.html#createGroup">createGroup</a></li><li><a href="global.html#createGroupHandler">createGroupHandler</a></li><li><a href="global.html#createMember">createMember</a></li><li><a href="global.html#createMemberHandler">createMemberHandler</a></li><li><a href="global.html#createNotificationTrigger">createNotificationTrigger</a></li><li><a href="global.html#createPredefinedRoles">createPredefinedRoles</a></li><li><a href="global.html#createRateLimiters">createRateLimiters</a></li><li><a href="global.html#createRegistration">createRegistration</a></li><li><a href="global.html#createRegistrationHandler">createRegistrationHandler</a></li><li><a href="global.html#createRole">createRole</a></li><li><a href="global.html#createRoleHandler">createRoleHandler</a></li><li><a href="global.html#createTriggerHandler">createTriggerHandler</a></li><li><a href="global.html#createUnit">createUnit</a></li><li><a href="global.html#createUnitHandler">createUnitHandler</a></li><li><a href="global.html#deactivateCenter">deactivateCenter</a></li><li><a href="global.html#deactivateCenterHandler">deactivateCenterHandler</a></li><li><a href="global.html#deactivateGroup">deactivateGroup</a></li><li><a href="global.html#deactivateGroupHandler">deactivateGroupHandler</a></li><li><a href="global.html#deactivateMember">deactivateMember</a></li><li><a href="global.html#deactivateMemberHandler">deactivateMemberHandler</a></li><li><a href="global.html#deactivateRole">deactivateRole</a></li><li><a href="global.html#deactivateRoleHandler">deactivateRoleHandler</a></li><li><a href="global.html#deactivateUnit">deactivateUnit</a></li><li><a href="global.html#deactivateUnitHandler">deactivateUnitHandler</a></li><li><a href="global.html#deleteEvent">deleteEvent</a></li><li><a href="global.html#deleteEventHandler">deleteEventHandler</a></li><li><a href="global.html#downloadTagHandler">downloadTagHandler</a></li><li><a href="global.html#exportAuditLogs">exportAuditLogs</a></li><li><a href="global.html#exportAuditLogsHandler">exportAuditLogsHandler</a></li><li><a href="global.html#exportEventReport">exportEventReport</a></li><li><a href="global.html#exportEventReportHandler">exportEventReportHandler</a></li><li><a href="global.html#filterByScope">filterByScope</a></li><li><a href="global.html#forgotPasswordHandler">forgotPasswordHandler</a></li><li><a href="global.html#formatPaginatedResponse">formatPaginatedResponse</a></li><li><a href="global.html#generateAttendanceCode">generateAttendanceCode</a></li><li><a href="global.html#generateCodeHandler">generateCodeHandler</a></li><li><a href="global.html#generateFCSCode">generateFCSCode</a></li><li><a href="global.html#generateOTP">generateOTP</a></li><li><a href="global.html#generateSignedUrl">generateSignedUrl</a></li><li><a href="global.html#generateTagPdf">generateTagPdf</a></li><li><a href="global.html#generateToken">generateToken</a></li><li><a href="global.html#generateUUID">generateUUID</a></li><li><a href="global.html#getAdminScope">getAdminScope</a></li><li><a href="global.html#getAllAncestorIds">getAllAncestorIds</a></li><li><a href="global.html#getAllDescendantIds">getAllDescendantIds</a></li><li><a href="global.html#getAttendanceSummaryHandler">getAttendanceSummaryHandler</a></li><li><a href="global.html#getAuditLogsByRange">getAuditLogsByRange</a></li><li><a href="global.html#getAuditLogsHandler">getAuditLogsHandler</a></li><li><a href="global.html#getCenterAnalytics">getCenterAnalytics</a></li><li><a href="global.html#getCenterAnalyticsHandler">getCenterAnalyticsHandler</a></li><li><a href="global.html#getCenterAttendance">getCenterAttendance</a></li><li><a href="global.html#getCenterAttendanceHandler">getCenterAttendanceHandler</a></li><li><a href="global.html#getCenterById">getCenterById</a></li><li><a href="global.html#getCenterHandler">getCenterHandler</a></li><li><a href="global.html#getCenterStatistics">getCenterStatistics</a></li><li><a href="global.html#getCenterStatisticsHandler">getCenterStatisticsHandler</a></li><li><a href="global.html#getCentersByState">getCentersByState</a></li><li><a href="global.html#getChildUnits">getChildUnits</a></li><li><a href="global.html#getChildUnitsHandler">getChildUnitsHandler</a></li><li><a href="global.html#getComplianceReport">getComplianceReport</a></li><li><a href="global.html#getComplianceReportHandler">getComplianceReportHandler</a></li><li><a href="global.html#getCurrentUser">getCurrentUser</a></li><li><a href="global.html#getDashboardHandler">getDashboardHandler</a></li><li><a href="global.html#getDashboardSummary">getDashboardSummary</a></li><li><a href="global.html#getDataChangeHistory">getDataChangeHistory</a></li><li><a href="global.html#getDataChangeHistoryHandler">getDataChangeHistoryHandler</a></li><li><a href="global.html#getDateRangeQuery">getDateRangeQuery</a></li><li><a href="global.html#getEffectiveScope">getEffectiveScope</a></li><li><a href="global.html#getEntityAuditTrail">getEntityAuditTrail</a></li><li><a href="global.html#getEntityAuditTrailHandler">getEntityAuditTrailHandler</a></li><li><a href="global.html#getEventAnalytics">getEventAnalytics</a></li><li><a href="global.html#getEventAnalyticsHandler">getEventAnalyticsHandler</a></li><li><a href="global.html#getEventAttendance">getEventAttendance</a></li><li><a href="global.html#getEventAttendanceHandler">getEventAttendanceHandler</a></li><li><a href="global.html#getEventById">getEventById</a></li><li><a href="global.html#getEventHandler">getEventHandler</a></li><li><a href="global.html#getEventRegistrationsHandler">getEventRegistrationsHandler</a></li><li><a href="global.html#getEventStatistics">getEventStatistics</a></li><li><a href="global.html#getEventStatisticsHandler">getEventStatisticsHandler</a></li><li><a href="global.html#getGlobalRegistrationsStats">getGlobalRegistrationsStats</a></li><li><a href="global.html#getGlobalRegistrationsStatsHandler">getGlobalRegistrationsStatsHandler</a></li><li><a href="global.html#getGroupById">getGroupById</a></li><li><a href="global.html#getGroupHandler">getGroupHandler</a></li><li><a href="global.html#getGroupMembers">getGroupMembers</a></li><li><a href="global.html#getGroupMembersHandler">getGroupMembersHandler</a></li><li><a href="global.html#getGroupStatistics">getGroupStatistics</a></li><li><a href="global.html#getGroupStatsHandler">getGroupStatsHandler</a></li><li><a href="global.html#getHierarchyHandler">getHierarchyHandler</a></li><li><a href="global.html#getHistoryHandler">getHistoryHandler</a></li><li><a href="global.html#getMemberAttendance">getMemberAttendance</a></li><li><a href="global.html#getMemberAttendanceHandler">getMemberAttendanceHandler</a></li><li><a href="global.html#getMemberAttendanceReport">getMemberAttendanceReport</a></li><li><a href="global.html#getMemberAttendanceReportHandler">getMemberAttendanceReportHandler</a></li><li><a href="global.html#getMemberAttendanceSummary">getMemberAttendanceSummary</a></li><li><a href="global.html#getMemberByAuthId">getMemberByAuthId</a></li><li><a href="global.html#getMemberByCodeHandler">getMemberByCodeHandler</a></li><li><a href="global.html#getMemberByFCSCode">getMemberByFCSCode</a></li><li><a href="global.html#getMemberById">getMemberById</a></li><li><a href="global.html#getMemberHandler">getMemberHandler</a></li><li><a href="global.html#getMemberRegistrations">getMemberRegistrations</a></li><li><a href="global.html#getMemberRegistrationsHandler">getMemberRegistrationsHandler</a></li><li><a href="global.html#getNotificationHistory">getNotificationHistory</a></li><li><a href="global.html#getNotificationTrigger">getNotificationTrigger</a></li><li><a href="global.html#getPaginationParams">getPaginationParams</a></li><li><a href="global.html#getPermissionGroups">getPermissionGroups</a></li><li><a href="global.html#getPermissionGroupsHandler">getPermissionGroupsHandler</a></li><li><a href="global.html#getRegistrarStatisticsHandler">getRegistrarStatisticsHandler</a></li><li><a href="global.html#getRegistrationById">getRegistrationById</a></li><li><a href="global.html#getRegistrationHandler">getRegistrationHandler</a></li><li><a href="global.html#getRegistrationsByEvent">getRegistrationsByEvent</a></li><li><a href="global.html#getRoleById">getRoleById</a></li><li><a href="global.html#getRoleHandler">getRoleHandler</a></li><li><a href="global.html#getRoleUsers">getRoleUsers</a></li><li><a href="global.html#getRoleUsersHandler">getRoleUsersHandler</a></li><li><a href="global.html#getScopeFilter">getScopeFilter</a></li><li><a href="global.html#getStateAnalytics">getStateAnalytics</a></li><li><a href="global.html#getStateAnalyticsHandler">getStateAnalyticsHandler</a></li><li><a href="global.html#getTriggerHandler">getTriggerHandler</a></li><li><a href="global.html#getUnitById">getUnitById</a></li><li><a href="global.html#getUnitHandler">getUnitHandler</a></li><li><a href="global.html#getUnitHierarchy">getUnitHierarchy</a></li><li><a href="global.html#getUnitMembers">getUnitMembers</a></li><li><a href="global.html#getUnitMembersHandler">getUnitMembersHandler</a></li><li><a href="global.html#getUnitStatistics">getUnitStatistics</a></li><li><a href="global.html#getUnitStatsHandler">getUnitStatsHandler</a></li><li><a href="global.html#getUserAuditTrail">getUserAuditTrail</a></li><li><a href="global.html#getUserAuditTrailHandler">getUserAuditTrailHandler</a></li><li><a href="global.html#getUserById">getUserById</a></li><li><a href="global.html#getUserPermissions">getUserPermissions</a></li><li><a href="global.html#getUserPermissionsHandler">getUserPermissionsHandler</a></li><li><a href="global.html#getUserRoles">getUserRoles</a></li><li><a href="global.html#getUserRolesHandler">getUserRolesHandler</a></li><li><a href="global.html#handleProfileImageUpload">handleProfileImageUpload</a></li><li><a href="global.html#hashPassword">hashPassword</a></li><li><a href="global.html#initPredefinedRolesHandler">initPredefinedRolesHandler</a></li><li><a href="global.html#initializeDatabase">initializeDatabase</a></li><li><a href="global.html#isAccessViolation">isAccessViolation</a></li><li><a href="global.html#isCenterAdmin">isCenterAdmin</a></li><li><a href="global.html#isDateInFuture">isDateInFuture</a></li><li><a href="global.html#isDateInPast">isDateInPast</a></li><li><a href="global.html#isEventHappening">isEventHappening</a></li><li><a href="global.html#isRegistrationOpen">isRegistrationOpen</a></li><li><a href="global.html#isWithinScope">isWithinScope</a></li><li><a href="global.html#listActiveCenters">listActiveCenters</a></li><li><a href="global.html#listActiveCentersHandler">listActiveCentersHandler</a></li><li><a href="global.html#listCentersByEvent">listCentersByEvent</a></li><li><a href="global.html#listCentersHandler">listCentersHandler</a></li><li><a href="global.html#listEvents">listEvents</a></li><li><a href="global.html#listEventsHandler">listEventsHandler</a></li><li><a href="global.html#listGroupsByEvent">listGroupsByEvent</a></li><li><a href="global.html#listGroupsHandler">listGroupsHandler</a></li><li><a href="global.html#listMembers">listMembers</a></li><li><a href="global.html#listMembersHandler">listMembersHandler</a></li><li><a href="global.html#listNotificationTriggers">listNotificationTriggers</a></li><li><a href="global.html#listRegistrations">listRegistrations</a></li><li><a href="global.html#listRegistrationsHandler">listRegistrationsHandler</a></li><li><a href="global.html#listRoles">listRoles</a></li><li><a href="global.html#listRolesHandler">listRolesHandler</a></li><li><a href="global.html#listTriggersHandler">listTriggersHandler</a></li><li><a href="global.html#listUnits">listUnits</a></li><li><a href="global.html#listUnitsHandler">listUnitsHandler</a></li><li><a href="global.html#logEntityChange">logEntityChange</a></li><li><a href="global.html#logger">logger</a></li><li><a href="global.html#login">login</a></li><li><a href="global.html#loginUser">loginUser</a></li><li><a href="global.html#logout">logout</a></li><li><a href="global.html#logoutUser">logoutUser</a></li><li><a href="global.html#markAttendance">markAttendance</a></li><li><a href="global.html#markAttendanceHandler">markAttendanceHandler</a></li><li><a href="global.html#markDeliveredHandler">markDeliveredHandler</a></li><li><a href="global.html#markNotificationAsDelivered">markNotificationAsDelivered</a></li><li><a href="global.html#normalizePhoneNumber">normalizePhoneNumber</a></li><li><a href="global.html#publishEvent">publishEvent</a></li><li><a href="global.html#publishEventHandler">publishEventHandler</a></li><li><a href="global.html#queueNotificationJob">queueNotificationJob</a></li><li><a href="global.html#rateLimitErrorHandler">rateLimitErrorHandler</a></li><li><a href="global.html#refreshToken">refreshToken</a></li><li><a href="global.html#refreshTokenHandler">refreshTokenHandler</a></li><li><a href="global.html#register">register</a></li><li><a href="global.html#registerUser">registerUser</a></li><li><a href="global.html#removeCenterAdmin">removeCenterAdmin</a></li><li><a href="global.html#removeCenterAdminHandler">removeCenterAdminHandler</a></li><li><a href="global.html#removeGuardian">removeGuardian</a></li><li><a href="global.html#removeGuardianHandler">removeGuardianHandler</a></li><li><a href="global.html#removeMemberFromGroup">removeMemberFromGroup</a></li><li><a href="global.html#removeMemberFromUnit">removeMemberFromUnit</a></li><li><a href="global.html#removeMemberHandler">removeMemberHandler</a></li><li><a href="global.html#removeRoleFromUser">removeRoleFromUser</a></li><li><a href="global.html#removeRoleHandler">removeRoleHandler</a></li><li><a href="global.html#requestPasswordReset">requestPasswordReset</a></li><li><a href="global.html#requestTimeout">requestTimeout</a></li><li><a href="global.html#requireScope">requireScope</a></li><li><a href="global.html#resetPassword">resetPassword</a></li><li><a href="global.html#resetPasswordHandler">resetPasswordHandler</a></li><li><a href="global.html#scopedWhere">scopedWhere</a></li><li><a href="global.html#searchMembers">searchMembers</a></li><li><a href="global.html#searchMembersHandler">searchMembersHandler</a></li><li><a href="global.html#sendBatchHandler">sendBatchHandler</a></li><li><a href="global.html#sendBatchNotifications">sendBatchNotifications</a></li><li><a href="global.html#sendMail">sendMail</a></li><li><a href="global.html#sendNotification">sendNotification</a></li><li><a href="global.html#sendNotificationHandler">sendNotificationHandler</a></li><li><a href="global.html#sendOTP">sendOTP</a></li><li><a href="global.html#socketTimeout">socketTimeout</a></li><li><a href="global.html#testDatabaseConnection">testDatabaseConnection</a></li><li><a href="global.html#triggerCenterAssignmentHandler">triggerCenterAssignmentHandler</a></li><li><a href="global.html#triggerCenterAssignmentNotifications">triggerCenterAssignmentNotifications</a></li><li><a href="global.html#triggerEventReminderHandler">triggerEventReminderHandler</a></li><li><a href="global.html#triggerEventReminderNotifications">triggerEventReminderNotifications</a></li><li><a href="global.html#triggerGroupAssignmentHandler">triggerGroupAssignmentHandler</a></li><li><a href="global.html#triggerGroupAssignmentNotifications">triggerGroupAssignmentNotifications</a></li><li><a href="global.html#triggerRegistrationHandler">triggerRegistrationHandler</a></li><li><a href="global.html#triggerRegistrationNotifications">triggerRegistrationNotifications</a></li><li><a href="global.html#updateCenter">updateCenter</a></li><li><a href="global.html#updateCenterHandler">updateCenterHandler</a></li><li><a href="global.html#updateEvent">updateEvent</a></li><li><a href="global.html#updateEventHandler">updateEventHandler</a></li><li><a href="global.html#updateEventSettings">updateEventSettings</a></li><li><a href="global.html#updateEventSettingsHandler">updateEventSettingsHandler</a></li><li><a href="global.html#updateGroup">updateGroup</a></li><li><a href="global.html#updateGroupHandler">updateGroupHandler</a></li><li><a href="global.html#updateMember">updateMember</a></li><li><a href="global.html#updateMemberHandler">updateMemberHandler</a></li><li><a href="global.html#updateNotificationTrigger">updateNotificationTrigger</a></li><li><a href="global.html#updateProfileHandler">updateProfileHandler</a></li><li><a href="global.html#updateRegistrationStatus">updateRegistrationStatus</a></li><li><a href="global.html#updateRegistrationStatusHandler">updateRegistrationStatusHandler</a></li><li><a href="global.html#updateRole">updateRole</a></li><li><a href="global.html#updateRoleHandler">updateRoleHandler</a></li><li><a href="global.html#updateTriggerHandler">updateTriggerHandler</a></li><li><a href="global.html#updateUnit">updateUnit</a></li><li><a href="global.html#updateUnitHandler">updateUnitHandler</a></li><li><a href="global.html#validateAttendanceCode">validateAttendanceCode</a></li><li><a href="global.html#validateCodeHandler">validateCodeHandler</a></li><li><a href="global.html#verifyAttendance">verifyAttendance</a></li><li><a href="global.html#verifyAttendanceHandler">verifyAttendanceHandler</a></li><li><a href="global.html#verifyOTP">verifyOTP</a></li><li><a href="global.html#verifyOTPHandler">verifyOTPHandler</a></li><li><a href="global.html#verifySmtp">verifySmtp</a></li><li><a href="global.html#verifyToken">verifyToken</a></li><li><a href="global.html#withTimeout">withTimeout</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Mon Jan 19 2026 15:24:36 GMT+0000 (Coordinated Universal Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Thu Jan 22 2026 07:45:38 GMT+0000 (Coordinated Universal Time)
 </footer>
 
 <script> prettyPrint(); </script>
