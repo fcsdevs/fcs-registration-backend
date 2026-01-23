@@ -13,7 +13,8 @@ import {
 } from './service.js';
 import { getAdminScope } from '../../middleware/scope-validator.js';
 import { createMemberSchema, updateMemberSchema, paginationSchema } from '../../lib/validation.js';
-import prisma from '../../lib/prisma.js';
+import getPrismaClient from '../../lib/prisma.js';
+const prisma = getPrismaClient();
 import { cloudinaryUploadImage } from '../../lib/cloudinary.js';
 import fs from 'fs';
 

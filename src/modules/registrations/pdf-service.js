@@ -4,6 +4,21 @@ import fs from 'fs';
 import path from 'path';
 
 /**
+ * Helper to fetch image buffer from URL
+ */
+async function getImageBuffer(url) {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+        const arrayBuffer = await response.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+    } catch (err) {
+        console.error('Error fetching image:', url, err.message);
+        return null;
+    }
+}
+
+/**
  * Generate Event Tag PDF
  * @param {Object} registration - Registration object with member, event, and participation details
  * @returns {Promise<Buffer>} - PDF Buffer
@@ -25,81 +40,146 @@ export const generateTagPdf = async (registration) => {
             const height = doc.page.height;
             const margin = 20;
 
-            // Background / Border
-            doc.rect(0, 0, width, height).fill('#ffffff'); // White background
+            // Background
+            doc.rect(0, 0, width, height).fill('#ffffff');
 
-            // Top Color Bar (FCS Blue-ish)
-            doc.rect(0, 0, width, 40).fill('#1e40af'); // blue-800
+            // --- BANNER IMAGE ---
+            let headerHeight = 60;
+            if (registration.event?.imageUrl) {
+                const bannerBuffer = await getImageBuffer(registration.event.imageUrl);
+                if (bannerBuffer) {
+                    headerHeight = 80;
+                    doc.image(bannerBuffer, 0, 0, { width: width, height: headerHeight, cover: [width, headerHeight] });
+                    // Add a dark overlay to make white text readable
+                    doc.rect(0, 0, width, headerHeight).fillColor('#000000', 0.4).fill();
+                } else {
+                    doc.rect(0, 0, width, headerHeight).fill('#1e40af'); // Fallback blue
+                }
+            } else {
+                doc.rect(0, 0, width, headerHeight).fill('#1e40af'); // blue-800
+            }
 
-            // --- HEADER ---
+            // --- LOGO (TOP LEFT) ---
+            // Using placeholder for now or if I can find a reliable path
             doc.fillColor('#ffffff')
                 .font('Helvetica-Bold')
-                .fontSize(14)
-                .text('FCS NIGERIA', 0, 15, { align: 'center' });
-
-            // --- EVENT DETAILS ---
-            const eventTitle = registration.event?.title || 'FCS Event';
-            doc.fillColor('#333333')
-                .font('Helvetica-Bold')
                 .fontSize(10)
-                .text(eventTitle.toUpperCase(), margin, 60, { align: 'center', width: width - (margin * 2) });
+                .text('FCS NIGERIA', 15, 15);
 
+            // --- EVENT TITLE & DATE (TOP RIGHT) ---
+            const eventTitle = (registration.event?.title || 'FCS EVENT').toUpperCase();
+            doc.fillColor('#ffffff')
+                .font('Helvetica-Bold')
+                .fontSize(12)
+                .text(eventTitle, margin, 15, { align: 'right', width: width - margin * 2 });
+
+            const eventDate = registration.event?.startDate
+                ? new Date(registration.event.startDate).toLocaleDateString('en-GB')
+                : '';
             doc.font('Helvetica')
                 .fontSize(8)
-                .text(new Date(registration.event?.startDate).toDateString(), { align: 'center' });
+                .text(eventDate, margin, 32, { align: 'right', width: width - margin * 2 });
 
-            // --- ATTENDEE INFO ---
-            const firstName = registration.member?.firstName || '';
-            const lastName = registration.member?.lastName || '';
+            // --- PROFILE IMAGE ---
+            const profileY = headerHeight + 20;
+            const profileSize = 70;
+            const centerX = width / 2;
 
-            doc.moveDown(2);
-            doc.font('Helvetica-Bold')
-                .fontSize(22)
-                .text(`${firstName} ${lastName}`, margin, 100, {
-                    align: 'center',
-                    width: width - (margin * 2)
-                });
+            if (registration.member?.profilePhotoUrl) {
+                const photoBuffer = await getImageBuffer(registration.member.profilePhotoUrl);
+                if (photoBuffer) {
+                    // Draw circular clip or just square for simplicity first
+                    doc.save();
+                    doc.circle(centerX, profileY + profileSize / 2, profileSize / 2).clip();
+                    doc.image(photoBuffer, centerX - profileSize / 2, profileY, { width: profileSize, height: profileSize, cover: [profileSize, profileSize] });
+                    doc.restore();
+                } else {
+                    // Placeholder circle
+                    doc.circle(centerX, profileY + profileSize / 2, profileSize / 2).fill('#f3f4f6');
+                    doc.fillColor('#9ca3af').fontSize(20).text('?', centerX - 5, profileY + 25);
+                }
+            } else {
+                // Placeholder circle
+                doc.circle(centerX, profileY + profileSize / 2, profileSize / 2).fill('#f3f4f6');
+                doc.fillColor('#9ca3af').fontSize(20).text('?', centerX - 5, profileY + 25);
+            }
 
-            doc.font('Helvetica-Bold')
-                .fontSize(14)
-                .fillColor('#1e40af')
-                .text(`FCS ID: ${registration.member?.fcsCode || ''}`, { align: 'center' });
+            // --- NAME ---
+            const firstName = (registration.member?.firstName || '').toUpperCase();
+            const lastName = (registration.member?.lastName || '').toUpperCase();
 
-            // --- ROLE / STATUS ---
-            const role = registration.status === 'CONFIRMED' || registration.status === 'CHECKED_IN' ? 'DELEGATE' : registration.status;
-
-            doc.moveDown(1);
-            doc.rect(margin + 20, doc.y, width - (margin * 2) - 40, 20)
-                .fill('#f3f4f6'); // gray-100
-
-            doc.fillColor('#000000')
-                .fontSize(10)
+            doc.fillColor('#0f172a')
                 .font('Helvetica-Bold')
-                .text(role, 0, doc.y - 15, { align: 'center' });
+                .fontSize(18)
+                .text(lastName, 0, profileY + profileSize + 10, { align: 'center' });
+
+            doc.font('Helvetica')
+                .fontSize(14)
+                .text(firstName, { align: 'center' });
+
+            // --- ATTENDANCE MODE & VENUE ---
+            const mode = (registration.participation?.participationMode || 'ONSITE').toUpperCase();
+            const center = registration.participation?.center?.centerName || '';
+
+            doc.moveDown(0.5);
+            doc.font('Helvetica-Bold')
+                .fontSize(10)
+                .fillColor('#10b981') // emerald-500
+                .text(mode, { align: 'center' });
+
+            if (mode === 'ONSITE' && center) {
+                doc.font('Helvetica')
+                    .fontSize(8)
+                    .fillColor('#64748b') // slate-500
+                    .text(`Venue: ${center}`, { align: 'center', width: width - 40 });
+            }
+
+            // --- GROUPS (Workshop / Bible Study) ---
+            if (registration.groupAssignment?.group) {
+                const group = registration.groupAssignment.group;
+                doc.moveDown(0.5);
+                doc.rect(20, doc.y, width - 40, 15).fill('#f1f5f9');
+                doc.fillColor('#475569')
+                    .font('Helvetica-Bold')
+                    .fontSize(7)
+                    .text(`${group.type}: ${group.name}`, 25, doc.y - 11, { align: 'center', width: width - 50 });
+            }
 
             // --- QR CODE ---
-            // QR Content: JSON string for verification
             const qrData = JSON.stringify({
                 id: registration.id,
                 code: registration.member?.fcsCode,
                 event: registration.eventId
             });
 
-            const qrImage = await QRCode.toDataURL(qrData);
+            const qrImage = await QRCode.toDataURL(qrData, {
+                margin: 1,
+                color: {
+                    dark: '#000000',
+                    light: '#ffffff'
+                }
+            });
 
-            // Calculate QR position (bottom center)
-            const qrSize = 100;
-            doc.image(qrImage, (width - qrSize) / 2, height - qrSize - 30, { width: qrSize });
+            const qrSize = 80;
+            const qrY = height - qrSize - 35;
+            doc.image(qrImage, (width - qrSize) / 2, qrY, { width: qrSize });
 
-            // --- FOOTER ---
-            const centerName = registration.participation?.center?.centerName || 'General';
-            doc.fontSize(8)
+            // --- FCS CODE (Beautifully Styled) ---
+            doc.fillColor('#065f46') // emerald-800
+                .font('Helvetica-Bold')
+                .fontSize(10)
+                .text(registration.member?.fcsCode || '', 0, qrY + qrSize + 2, { align: 'center' });
+
+            // --- SYSTEM FOOTER ---
+            doc.fillColor('#94a3b8')
                 .font('Helvetica')
-                .text(centerName, 0, height - 20, { align: 'center' });
+                .fontSize(6)
+                .text('FCS Registration System', 0, height - 15, { align: 'center' });
 
             doc.end();
 
         } catch (error) {
+            console.error('PDF Generation Error:', error);
             reject(error);
         }
     });
