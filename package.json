@@ -26,6 +26,7 @@
   "license": "PROPRIETARY",
   "dependencies": {
     "@prisma/client": "^5.8.0",
+    "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
