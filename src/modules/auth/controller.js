@@ -89,7 +89,7 @@ export const login = async (req, res, next) => {
       });
     }
 
-    const result = await loginUser(value.email, value.password);
+    const result = await loginUser(value.identifier, value.password);
     res.status(200).json({
       data: result,
       message: 'Login successful',
