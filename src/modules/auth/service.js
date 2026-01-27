@@ -33,22 +33,12 @@ export const registerUser = async (data) => {
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
   // Check if user already exists
-  const existingUser = await prisma.authUser.findFirst({
-    where: {
-      OR: [
-        { phoneNumber: normalizedPhone },
-        email ? { email } : undefined
-      ].filter(Boolean)
-    },
+  const existingUser = await prisma.authUser.findUnique({
+    where: { phoneNumber: normalizedPhone },
   });
 
   if (existingUser) {
-    if (existingUser.phoneNumber === normalizedPhone) {
-      throw new ValidationError('User with this phone number already exists');
-    }
-    if (email && existingUser.email === email) {
-      throw new ValidationError('User with this email already exists');
-    }
+    throw new ValidationError('User with this phone number already exists');
   }
 
   // Hash password
@@ -213,24 +203,16 @@ export const checkUserExistence = async ({ email, phoneNumber }) => {
 };
 
 /**
- * Login user with email/phone and password
+ * Login user with email and password
  */
-export const loginUser = async (identifier, password) => {
-  // Normalize if it looks like a phone number
-  const normalizedPhone = normalizePhoneNumber(identifier);
-
-  // Find user by email or phone
-  const authUser = await prisma.authUser.findFirst({
-    where: {
-      OR: [
-        { email: identifier },
-        { phoneNumber: normalizedPhone }
-      ]
-    },
+export const loginUser = async (email, password) => {
+  // Find user
+  const authUser = await prisma.authUser.findUnique({
+    where: { email },
   });
 
   if (!authUser) {
-    throw new UnauthorizedError('Invalid credentials');
+    throw new UnauthorizedError('Invalid email or password');
   }
 
   // Check if active
@@ -242,7 +224,7 @@ export const loginUser = async (identifier, password) => {
   const isValidPassword = await comparePassword(password, authUser.passwordHash);
 
   if (!isValidPassword) {
-    throw new UnauthorizedError('Invalid credentials');
+    throw new UnauthorizedError('Invalid email or password');
   }
 
   // Update last login

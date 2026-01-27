@@ -51,9 +51,7 @@ export const registerSchema = Joi.object({
 });
 
 export const loginSchema = Joi.object({
-  identifier: Joi.string().required().messages({
-    'any.required': 'Email or Phone Number is required'
-  }),
+  email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
 
