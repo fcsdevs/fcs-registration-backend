@@ -137,12 +137,51 @@ export const listMembers = async (query) => {
   }
 
   if (search) {
-    where.OR = [
+    const searchParts = search.trim().split(/\s+/);
+    const searchConditions = [
       { firstName: { contains: search, mode: 'insensitive' } },
       { lastName: { contains: search, mode: 'insensitive' } },
-      { phoneNumber: { contains: search, mode: 'insensitive' } },
+      { email: { contains: search, mode: 'insensitive' } },
+      { phoneNumber: { contains: search } },
       { fcsCode: { contains: search, mode: 'insensitive' } },
+      { otherNames: { contains: search, mode: 'insensitive' } },
+      { ageBracket: { contains: search, mode: 'insensitive' } },
+      // Search each part against firstName
+      ...searchParts.map(part => ({
+        firstName: { contains: part, mode: 'insensitive' }
+      })),
+      // Search each part against lastName
+      ...searchParts.map(part => ({
+        lastName: { contains: part, mode: 'insensitive' }
+      })),
+      // Search each part against otherNames
+      ...searchParts.map(part => ({
+        otherNames: { contains: part, mode: 'insensitive' }
+      })),
     ];
+
+    // Smart DOB Search: If search looks like a year (4 digits), search by birth year
+    const yearMatch = search.match(/\b(19\d{2}|20\d{2})\b/);
+    if (yearMatch) {
+      const year = parseInt(yearMatch[0]);
+      const yearStart = new Date(`${year}-01-01T00:00:00.000Z`);
+      const yearEnd = new Date(`${year}-12-31T23:59:59.999Z`);
+
+      searchConditions.push({
+        dateOfBirth: {
+          gte: yearStart,
+          lte: yearEnd
+        }
+      });
+    }
+
+    if (Object.keys(where).length > 0) {
+      where.AND = [
+        { OR: searchConditions }
+      ];
+    } else {
+      where.OR = searchConditions;
+    }
   }
 
   if (state) {
@@ -418,6 +457,8 @@ export const searchMembers = async (query) => {
         { lastName: { contains: query, mode: 'insensitive' } },
         { fcsCode: { contains: query, mode: 'insensitive' } },
         { email: { contains: query, mode: 'insensitive' } },
+        { otherNames: { contains: query, mode: 'insensitive' } },
+        { phoneNumber: { contains: query } },
       ],
       isActive: true,
     },

@@ -12,7 +12,8 @@ import {
   getRegistrarStatisticsHandler,
   getGlobalRegistrationsStatsHandler,
   markAttendanceHandler,
-  downloadTagHandler
+  downloadTagHandler,
+  exportRegistrationsHandler,
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
@@ -36,6 +37,9 @@ router.get('/stats', authenticate, getRegistrarStatisticsHandler);
 
 // GET /api/registrations/stats/summary - Get global registration statistics (MUST be before /:id)
 router.get('/stats/summary', authenticate, getGlobalRegistrationsStatsHandler);
+
+// GET /api/registrations/export/csv - Export registrations as CSV (MUST be before /:id)
+router.get('/export/csv', authenticate, exportRegistrationsHandler);
 
 // GET /api/registrations/:id - Get registration details
 // GET /api/registrations/:id - Get registration details

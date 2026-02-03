@@ -11,6 +11,7 @@ import {
   getRegistrarStatistics,
   getGlobalRegistrationsStats,
   markAttendance,
+  exportRegistrationsToCSV,
 } from './service.js';
 import { createRegistrationSchema, assignCenterSchema, paginationSchema } from '../../lib/validation.js';
 import { getAdminScope } from '../../middleware/scope-validator.js';
@@ -344,6 +345,56 @@ export const downloadTagHandler = async (req, res, next) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=tag-${registration.member.fcsCode}.pdf`);
     res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/registrations/export/csv
+ */
+export const exportRegistrationsHandler = async (req, res, next) => {
+  try {
+    const { error, value } = paginationSchema.validate(req.query);
+    if (error) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: error.details[0].message,
+        },
+      });
+    }
+
+    // Enforce Scope (same as listRegistrations)
+    const scope = await getAdminScope(req.userId);
+    let effectiveUnitId = req.query.unitId;
+    if (!scope.isGlobal) {
+      if (!req.query.eventId) {
+        effectiveUnitId = scope.unitId;
+      }
+    }
+
+    const csv = await exportRegistrationsToCSV({
+      ...value,
+      eventId: req.query.eventId,
+      memberId: req.query.memberId,
+      status: req.query.status,
+      centerId: req.query.centerId,
+      registeredBy: req.query.registeredBy,
+      ids: req.query.ids,
+      unitId: effectiveUnitId,
+      search: req.query.search,
+      adminScope: scope,
+    });
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const eventId = req.query.eventId || 'all';
+    const filename = `registrations-${eventId}-${timestamp}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
   } catch (error) {
     next(error);
   }

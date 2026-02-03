@@ -224,15 +224,56 @@ export const listRegistrations = async (query) => {
   }
 
   if (search) {
-    where.OR = [
+    // Advanced Search Logic: Split search terms and search each part
+    const searchParts = search.trim().split(/\s+/);
+    const searchConditions = [
       { id: { equals: search } }, // Exact match for ID (CUID)
-      { member: { firstName: { contains: search, mode: 'insensitive' } } },
-      { member: { lastName: { contains: search, mode: 'insensitive' } } },
       { member: { email: { contains: search, mode: 'insensitive' } } },
-      { member: { phoneNumber: { contains: search, mode: 'insensitive' } } },
+      { member: { phoneNumber: { contains: search } } },
       { member: { fcsCode: { contains: search, mode: 'insensitive' } } },
+      { member: { otherNames: { contains: search, mode: 'insensitive' } } },
+      { member: { ageBracket: { contains: search, mode: 'insensitive' } } },
+      // Search each part against firstName
+      ...searchParts.map(part => ({
+        member: { firstName: { contains: part, mode: 'insensitive' } }
+      })),
+      // Search each part against lastName
+      ...searchParts.map(part => ({
+        member: { lastName: { contains: part, mode: 'insensitive' } }
+      })),
+      // Search each part against otherNames (middle names)
+      ...searchParts.map(part => ({
+        member: { otherNames: { contains: part, mode: 'insensitive' } }
+      })),
     ];
+
+    // Smart DOB Search: If search looks like a year (4 digits), search by birth year
+    const yearMatch = search.match(/\b(19\d{2}|20\d{2})\b/); // Matches years 1900-2099
+    if (yearMatch) {
+      const year = parseInt(yearMatch[0]);
+      const yearStart = new Date(`${year}-01-01T00:00:00.000Z`);
+      const yearEnd = new Date(`${year}-12-31T23:59:59.999Z`);
+
+      searchConditions.push({
+        member: {
+          dateOfBirth: {
+            gte: yearStart,
+            lte: yearEnd
+          }
+        }
+      });
+    }
+
+    // Combine with existing filters using AND logic if needed
+    if (Object.keys(where).length > 0) {
+      where.AND = [
+        { OR: searchConditions }
+      ];
+    } else {
+      where.OR = searchConditions;
+    }
   }
+
 
   const [registrations, total] = await Promise.all([
     prisma.registration.findMany({
@@ -692,4 +733,82 @@ export const markAttendance = async (registrationId, method, userId) => {
       status: 'CHECKED_IN',
     }
   });
+};
+
+/**
+ * Export Registrations to CSV
+ */
+export const exportRegistrationsToCSV = async (query) => {
+  const { Parser } = await import('json2csv');
+
+  // Get all registrations without pagination
+  const { page, limit, ...filterQuery } = query;
+  const registrations = await listRegistrations({
+    ...filterQuery,
+    page: 1,
+    limit: 10000, // Large limit to get all records
+  });
+
+  // Flatten the data for CSV
+  const flattenedData = registrations.data.map(reg => ({
+    'Registration ID': reg.id,
+    'Registration Date': new Date(reg.registrationDate).toLocaleString(),
+    'Status': reg.status,
+
+    // Member Info
+    'FCS Code': reg.member?.fcsCode || '',
+    'First Name': reg.member?.firstName || '',
+    'Last Name': reg.member?.lastName || '',
+    'Email': reg.member?.email || '',
+    'Phone': reg.member?.phoneNumber || '',
+
+    // Event Info
+    'Event ID': reg.event?.id || '',
+    'Event Title': reg.event?.title || '',
+    'Event Start Date': reg.event?.startDate ? new Date(reg.event.startDate).toLocaleDateString() : '',
+    'Event End Date': reg.event?.endDate ? new Date(reg.event.endDate).toLocaleDateString() : '',
+    'Event Mode': reg.event?.participationMode || '',
+
+    // Participation Info
+    'Participation Mode': reg.participation?.participationMode || '',
+    'Center Name': reg.participation?.center?.centerName || reg.center?.centerName || '',
+    'Center Address': reg.participation?.center?.address || reg.center?.address || '',
+
+    // Group Info
+    'Group Name': reg.groupAssignment?.group?.name || '',
+    'Group Type': reg.groupAssignment?.group?.type || '',
+
+    // Additional
+    'Cancelled At': reg.cancelledAt ? new Date(reg.cancelledAt).toLocaleString() : '',
+    'Cancellation Reason': reg.cancellationReason || '',
+  }));
+
+  // Define fields for CSV
+  const fields = [
+    'Registration ID',
+    'Registration Date',
+    'Status',
+    'FCS Code',
+    'First Name',
+    'Last Name',
+    'Email',
+    'Phone',
+    'Event ID',
+    'Event Title',
+    'Event Start Date',
+    'Event End Date',
+    'Event Mode',
+    'Participation Mode',
+    'Center Name',
+    'Center Address',
+    'Group Name',
+    'Group Type',
+    'Cancelled At',
+    'Cancellation Reason',
+  ];
+
+  const parser = new Parser({ fields });
+  const csv = parser.parse(flattenedData);
+
+  return csv;
 };
