@@ -24,7 +24,7 @@ router.get('/', authenticate, listCentersHandler);
 router.post('/', authenticate, createCenterHandler);
 
 // GET /api/centers/:id - Get center details
-router.get('/:id', getCenterHandler);
+router.get('/:id', authenticate, getCenterHandler);
 
 // PUT /api/centers/:id - Update center
 router.put('/:id', authenticate, updateCenterHandler);

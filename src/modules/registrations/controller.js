@@ -92,7 +92,7 @@ export const listRegistrationsHandler = async (req, res, next) => {
  */
 export const getRegistrationHandler = async (req, res, next) => {
   try {
-    const registration = await getRegistrationById(req.params.id);
+    const registration = await getRegistrationById(req.params.id, req.userId);
     res.status(200).json({
       data: registration,
     });

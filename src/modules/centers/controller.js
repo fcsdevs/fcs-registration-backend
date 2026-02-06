@@ -133,7 +133,7 @@ export const listActiveCentersHandler = async (req, res, next) => {
  */
 export const getCenterHandler = async (req, res, next) => {
   try {
-    const center = await getCenterById(req.params.id);
+    const center = await getCenterById(req.params.id, req.userId);
     res.status(200).json({
       data: center,
     });
@@ -212,7 +212,7 @@ export const removeCenterAdminHandler = async (req, res, next) => {
  */
 export const getCenterStatisticsHandler = async (req, res, next) => {
   try {
-    const stats = await getCenterStatistics(req.params.id);
+    const stats = await getCenterStatistics(req.params.id, req.userId);
     res.status(200).json({
       data: stats,
     });

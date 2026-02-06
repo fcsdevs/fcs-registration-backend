@@ -70,7 +70,7 @@ export const createCenter = async (data, userId) => {
 /**
  * Get center by ID
  */
-export const getCenterById = async (centerId) => {
+export const getCenterById = async (centerId, userId) => {
   const center = await prisma.eventCenter.findUnique({
     where: { id: centerId },
     include: {
@@ -90,6 +90,7 @@ export const getCenterById = async (centerId) => {
           id: true,
           title: true,
           participationMode: true,
+          unitId: true,
         },
       },
       state: {
@@ -104,6 +105,14 @@ export const getCenterById = async (centerId) => {
 
   if (!center) {
     throw new NotFoundError('Center');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, center.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to view this center');
+    }
   }
 
   return center;
@@ -309,13 +318,22 @@ export const removeCenterAdmin = async (centerId, userId, requesterUserId) => {
 /**
  * Get center statistics
  */
-export const getCenterStatistics = async (centerId) => {
+export const getCenterStatistics = async (centerId, userId) => {
   const center = await prisma.eventCenter.findUnique({
     where: { id: centerId },
+    include: { event: true },
   });
 
   if (!center) {
     throw new NotFoundError('Center');
+  }
+
+  // Permission Check
+  if (userId) {
+    const hasAccess = await checkScopeAccess(userId, center.event.unitId);
+    if (!hasAccess) {
+      throw new ForbiddenError('You do not have permission to view statistics for this center');
+    }
   }
 
   const [registrations, attendances, groups] = await Promise.all([

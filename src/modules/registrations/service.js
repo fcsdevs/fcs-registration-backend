@@ -141,13 +141,14 @@ export const createRegistration = async (data, userId) => {
 /**
  * Get registration by ID
  */
-export const getRegistrationById = async (registrationId) => {
+export const getRegistrationById = async (registrationId, userId) => {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
     include: {
       member: {
         select: {
           id: true,
+          authUserId: true, // Added for ownership check
           fcsCode: true,
           firstName: true,
           lastName: true,
@@ -164,6 +165,7 @@ export const getRegistrationById = async (registrationId) => {
           startDate: true,
           endDate: true,
           imageUrl: true,
+          unitId: true, // Added for scope check
         },
       },
       participation: {
@@ -193,6 +195,20 @@ export const getRegistrationById = async (registrationId) => {
 
   if (!registration) {
     throw new NotFoundError('Registration');
+  }
+
+  // Permission Check
+  if (userId) {
+    const isOwner = registration.member.authUserId === userId;
+    const isRegistrar = registration.registeredBy === userId;
+
+    if (!isOwner && !isRegistrar) {
+      // Check if Admin Scope allows
+      const hasAdminAccess = await checkScopeAccess(userId, registration.event.unitId);
+      if (!hasAdminAccess) {
+        throw new ForbiddenError('You do not have permission to view this registration');
+      }
+    }
   }
 
   return registration;
