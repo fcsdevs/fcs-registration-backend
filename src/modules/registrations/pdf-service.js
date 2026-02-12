@@ -26,6 +26,27 @@ async function getImageBuffer(url) {
 export const generateTagPdf = async (registration) => {
     return new Promise(async (resolve, reject) => {
         try {
+            // DEBUG: Log registration data
+            console.log('=== PDF GENERATION DEBUG ===');
+            console.log('Registration ID:', registration?.id);
+            console.log('Member:', {
+                fcsCode: registration?.member?.fcsCode,
+                firstName: registration?.member?.firstName,
+                lastName: registration?.member?.lastName,
+                profilePhotoUrl: registration?.member?.profilePhotoUrl
+            });
+            console.log('Event:', {
+                title: registration?.event?.title,
+                startDate: registration?.event?.startDate,
+                imageUrl: registration?.event?.imageUrl
+            });
+            console.log('Participation:', {
+                mode: registration?.participation?.participationMode,
+                center: registration?.participation?.center?.centerName
+            });
+            console.log('Group Assignments:', registration?.groupAssignments);
+            console.log('=== END DEBUG ===');
+
             const doc = new PDFDocument({
                 size: 'A6', // Standard tag size (105 x 148 mm)
                 margin: 0,
@@ -117,32 +138,48 @@ export const generateTagPdf = async (registration) => {
                 .fontSize(14)
                 .text(firstName, { align: 'center' });
 
-            // --- ATTENDANCE MODE & VENUE ---
+            // --- VENUE / CENTER LABEL ---
             const mode = (registration.participation?.participationMode || 'ONSITE').toUpperCase();
             const center = registration.participation?.center?.centerName || '';
 
             doc.moveDown(0.5);
+
+            // Show venue/center section if center exists
+            if (center) {
+                doc.font('Helvetica')
+                    .fontSize(7)
+                    .fillColor('#94a3b8') // gray-400
+                    .text('VENUE / CENTER', { align: 'center' });
+
+                doc.font('Helvetica-Bold')
+                    .fontSize(10)
+                    .fillColor('#0f172a') // slate-900
+                    .text(center, { align: 'center', width: width - 40 });
+
+                doc.moveDown(0.3);
+            }
+
+            // Show participation mode
             doc.font('Helvetica-Bold')
                 .fontSize(10)
                 .fillColor('#10b981') // emerald-500
                 .text(mode, { align: 'center' });
 
-            if (mode === 'ONSITE' && center) {
-                doc.font('Helvetica')
-                    .fontSize(8)
-                    .fillColor('#64748b') // slate-500
-                    .text(`Venue: ${center}`, { align: 'center', width: width - 40 });
-            }
-
-            // --- GROUPS (Workshop / Bible Study) ---
-            if (registration.groupAssignment?.group) {
-                const group = registration.groupAssignment.group;
+            // --- GROUPS (Bible Study / Workshop / Seminar) ---
+            if (registration.groupAssignments && registration.groupAssignments.length > 0) {
                 doc.moveDown(0.5);
-                doc.rect(20, doc.y, width - 40, 15).fill('#f1f5f9');
-                doc.fillColor('#475569')
-                    .font('Helvetica-Bold')
-                    .fontSize(7)
-                    .text(`${group.type}: ${group.name}`, 25, doc.y - 11, { align: 'center', width: width - 50 });
+                registration.groupAssignments.forEach((assignment) => {
+                    if (assignment.group) {
+                        const group = assignment.group;
+                        const yPos = doc.y;
+                        doc.rect(20, yPos, width - 40, 18).fill('#f1f5f9');
+                        doc.fillColor('#475569')
+                            .font('Helvetica-Bold')
+                            .fontSize(8)
+                            .text(`${group.type}: ${group.name}`, 25, yPos + 5, { align: 'center', width: width - 50 });
+                        doc.moveDown(0.4);
+                    }
+                });
             }
 
             // --- QR CODE ---

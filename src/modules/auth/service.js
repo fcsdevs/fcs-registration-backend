@@ -68,6 +68,8 @@ export const registerUser = async (data) => {
       phoneNumber: normalizedPhone,
       email: email || null,
       passwordHash,
+      emailVerified: true,
+      phoneVerified: true,
     },
   });
 

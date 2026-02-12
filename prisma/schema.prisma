@@ -117,6 +117,8 @@ model Member {
   dateOfBirth       DateTime?
   gender            String?           // "MALE" | "FEMALE" | "OTHER"
   maritalStatus     String?           // Added maritalStatus
+   street            String?           // New: Address
+  department        String?           // New: Staff Department/Unit
   occupation        String?           // Added occupation
   placeOfWork       String?           // New: Organization
   institutionName   String?           // New: School / University
@@ -393,9 +395,10 @@ model Registration {
   updatedAt         DateTime          @updatedAt
 
   participation     RegistrationParticipation?
-  groupAssignment   GroupAssignment?
   attendance        AttendanceRecord?
   auditLogs         AuditLog[]        @relation("RegistrationAudit")
+
+  groupAssignments  GroupAssignment[] // Changed to plural and array
 
   @@unique([eventId, memberId])
   @@index([eventId])
@@ -430,7 +433,7 @@ model EventGroup {
   event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   name              String
   description       String?
-  type              String            // "BIBLE_STUDY" | "WORKSHOP" | "BREAKOUT"
+  type              String            // "BIBLE_STUDY" | "WORKSHOP" | "SEMINAR"
   isMandatory       Boolean           @default(false)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -445,7 +448,7 @@ model GroupAssignment {
   id                String            @id @default(cuid())
   groupId           String
   group             EventGroup        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  registrationId    String            @unique
+  registrationId    String
   registration      Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   memberId          String
   member            Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
@@ -457,6 +460,7 @@ model GroupAssignment {
   @@index([groupId])
   @@index([registrationId])
   @@index([memberId])
+  @@unique([registrationId, groupId])
 }
 
 // ============================================================

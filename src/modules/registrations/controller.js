@@ -334,18 +334,24 @@ import { generateTagPdf } from './pdf-service.js';
 export const downloadTagHandler = async (req, res, next) => {
   try {
     const registrationId = req.params.id;
-    const registration = await getRegistrationById(registrationId);
+    const userId = req.user?.id;
+
+    console.log('Fetching registration for tag PDF:', registrationId, 'User:', userId);
+
+    const registration = await getRegistrationById(registrationId, userId);
 
     if (!registration) {
       return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Registration not found' } });
     }
 
+    console.log('Registration fetched successfully, generating PDF...');
     const pdfBuffer = await generateTagPdf(registration);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=tag-${registration.member.fcsCode}.pdf`);
     res.send(pdfBuffer);
   } catch (error) {
+    console.error('Error in downloadTagHandler:', error);
     next(error);
   }
 };

@@ -11,6 +11,7 @@ import {
   ForbiddenError,
 } from '../../middleware/error-handler.js';
 import { isRegistrationOpen } from '../events/service.js';
+import { assignToBibleStudy } from '../groups/service.js';
 
 const prisma = getPrismaClient();
 
@@ -74,10 +75,10 @@ export const createRegistration = async (data, userId) => {
     throw new ValidationError('Member is already registered for this event');
   }
 
-  // If on-site, center is required
+  // If on-site or hybrid, center is required
   const finalParticipationMode = participationMode || 'ONLINE';
-  if (finalParticipationMode === 'ONSITE' && !centerId) {
-    throw new ValidationError('Center is required for on-site participation');
+  if ((finalParticipationMode === 'ONSITE' || finalParticipationMode === 'HYBRID') && !centerId) {
+    throw new ValidationError('Center is required for on-site or hybrid participation');
   }
 
   // Verify center if provided
@@ -108,6 +109,7 @@ export const createRegistration = async (data, userId) => {
       memberId,
       centerId: centerId || null,
       registeredBy: userId,
+      attendanceIntent: data.attendanceIntent || 'CONFIRMED',
       status: 'CONFIRMED',
       participation: {
         create: {
@@ -132,8 +134,21 @@ export const createRegistration = async (data, userId) => {
           participationMode: true,
         },
       },
+      groupAssignments: {
+        include: {
+          group: true,
+        },
+      },
     },
   });
+
+  // Auto-assign to Bible Study if available
+  try {
+    await assignToBibleStudy(eventId, registration.id, memberId, userId);
+  } catch (error) {
+    // Log error but don't fail registration
+    console.error(`[AutoAssignment] Failed for registration ${registration.id}:`, error);
+  }
 
   return registration;
 };
@@ -179,7 +194,7 @@ export const getRegistrationById = async (registrationId, userId) => {
           },
         },
       },
-      groupAssignment: {
+      groupAssignments: {
         include: {
           group: {
             select: {
@@ -329,7 +344,7 @@ export const listRegistrations = async (query) => {
             }
           }
         },
-        groupAssignment: {
+        groupAssignments: {
           include: {
             group: {
               select: {
@@ -481,15 +496,20 @@ export const assignGroup = async (registrationId, groupId, userId) => {
     }
   }
 
-  // Check if already assigned to a group for this event
-  const existingAssignment = await prisma.groupAssignment.findFirst({
-    where: { registrationId },
+  // Check if already assigned to a group of the same type for this registration
+  const sameTypeAssignment = await prisma.groupAssignment.findFirst({
+    where: {
+      registrationId,
+      group: {
+        type: group.type
+      }
+    },
   });
 
-  if (existingAssignment) {
-    // Update existing
+  if (sameTypeAssignment) {
+    // Update existing assignment of same type
     return prisma.groupAssignment.update({
-      where: { id: existingAssignment.id },
+      where: { id: sameTypeAssignment.id },
       data: {
         groupId,
         assignedBy: userId,
@@ -514,7 +534,7 @@ export const assignGroup = async (registrationId, groupId, userId) => {
 export const cancelRegistration = async (registrationId, reason, userId) => {
   const registration = await prisma.registration.findUnique({
     where: { id: registrationId },
-    include: { event: true },
+    include: { event: true, member: true },
   });
 
   if (!registration) {
@@ -522,8 +542,11 @@ export const cancelRegistration = async (registrationId, reason, userId) => {
   }
 
   if (userId) {
-    const hasAccess = await checkScopeAccess(userId, registration.event.unitId);
-    if (!hasAccess) throw new ForbiddenError('You do not have permission to cancel this registration');
+    const isSelf = registration.member.authUserId === userId;
+    if (!isSelf) {
+      const hasAccess = await checkScopeAccess(userId, registration.event.unitId);
+      if (!hasAccess) throw new ForbiddenError('You do not have permission to cancel this registration');
+    }
   }
 
   if (registration.status === 'CANCELLED') {
@@ -770,6 +793,7 @@ export const exportRegistrationsToCSV = async (query) => {
     'Registration ID': reg.id,
     'Registration Date': new Date(reg.registrationDate).toLocaleString(),
     'Status': reg.status,
+    'Attendance Intent': reg.attendanceIntent || 'CONFIRMED',
 
     // Member Info
     'FCS Code': reg.member?.fcsCode || '',
@@ -791,8 +815,9 @@ export const exportRegistrationsToCSV = async (query) => {
     'Center Address': reg.participation?.center?.address || reg.center?.address || '',
 
     // Group Info
-    'Group Name': reg.groupAssignment?.group?.name || '',
-    'Group Type': reg.groupAssignment?.group?.type || '',
+    'Bible Study': reg.groupAssignments?.find(ga => ga.group?.type === 'BIBLE_STUDY')?.group?.name || '',
+    'Workshop': reg.groupAssignments?.find(ga => ga.group?.type === 'WORKSHOP')?.group?.name || '',
+    'Seminar': reg.groupAssignments?.find(ga => ga.group?.type === 'SEMINAR')?.group?.name || '',
 
     // Additional
     'Cancelled At': reg.cancelledAt ? new Date(reg.cancelledAt).toLocaleString() : '',
@@ -804,6 +829,7 @@ export const exportRegistrationsToCSV = async (query) => {
     'Registration ID',
     'Registration Date',
     'Status',
+    'Attendance Intent',
     'FCS Code',
     'First Name',
     'Last Name',
@@ -817,8 +843,9 @@ export const exportRegistrationsToCSV = async (query) => {
     'Participation Mode',
     'Center Name',
     'Center Address',
-    'Group Name',
-    'Group Type',
+    'Bible Study',
+    'Workshop',
+    'Seminar',
     'Cancelled At',
     'Cancellation Reason',
   ];

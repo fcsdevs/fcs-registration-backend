@@ -3,6 +3,7 @@ import {
   generateFCSCode,
   getPaginationParams,
   formatPaginatedResponse,
+  calculateAgeBracket,
 } from '../../lib/helpers.js';
 import {
   ValidationError,
@@ -16,7 +17,7 @@ const prisma = getPrismaClient();
  * Create a new member
  */
 export const createMember = async (data, userId) => {
-  const { firstName, lastName, email, phoneNumber, dateOfBirth, gender, maritalStatus, occupation, state } = data;
+  const { firstName, lastName, email, phoneNumber, dateOfBirth, gender, maritalStatus, occupation, state, department } = data;
 
   // Check if member with phone already exists
   if (phoneNumber) {
@@ -36,9 +37,11 @@ export const createMember = async (data, userId) => {
       email: email || null,
       phoneNumber: phoneNumber || null,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+      ageBracket: calculateAgeBracket(dateOfBirth),
       gender: gender || null,
       maritalStatus: maritalStatus || null,
       occupation: occupation || null,
+      department: department || null,
       state: state || null,
     },
   });
@@ -244,7 +247,7 @@ export const updateMember = async (memberId, data) => {
     firstName, lastName, otherNames, preferredName,
     email, phoneNumber, whatsappNumber,
     dateOfBirth, gender, maritalStatus,
-    occupation, placeOfWork,
+    occupation, placeOfWork, department,
     institutionName, institutionType, level, course, graduationYear,
     membershipCategory, yearJoined,
     state, zone, branch, branchId,
@@ -290,6 +293,7 @@ export const updateMember = async (memberId, data) => {
 
   if (occupation !== undefined) updateData.occupation = occupation;
   if (placeOfWork !== undefined) updateData.placeOfWork = placeOfWork;
+  if (department !== undefined) updateData.department = department;
 
   if (institutionName !== undefined) updateData.institutionName = institutionName;
   if (institutionType !== undefined) updateData.institutionType = institutionType;
@@ -308,7 +312,13 @@ export const updateMember = async (memberId, data) => {
   if (preferredContactMethod !== undefined) updateData.preferredContactMethod = preferredContactMethod;
   if (emergencyContactName !== undefined) updateData.emergencyContactName = emergencyContactName;
   if (emergencyContactPhone !== undefined) updateData.emergencyContactPhone = emergencyContactPhone;
-  if (ageBracket !== undefined) updateData.ageBracket = ageBracket;
+
+  // Auto-calculate age bracket if DOB is provided, or use provided ageBracket
+  if (dateOfBirth !== undefined) {
+    updateData.ageBracket = calculateAgeBracket(dateOfBirth);
+  } else if (ageBracket !== undefined) {
+    updateData.ageBracket = ageBracket;
+  }
 
   if (guardianName !== undefined) updateData.guardianName = guardianName;
   if (guardianPhone !== undefined) updateData.guardianPhone = guardianPhone;

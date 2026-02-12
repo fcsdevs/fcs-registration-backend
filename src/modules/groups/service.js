@@ -92,20 +92,20 @@ export const listGroupsByEvent = async (eventId, params = {}) => {
       const getUserHierarchy = async (unitId) => {
         const units = [unitId];
         const stack = [unitId];
-        
+
         while (stack.length > 0) {
           const currentUnitId = stack.pop();
           const children = await prisma.unit.findMany({
             where: { parentId: currentUnitId },
             select: { id: true }
           });
-          
+
           children.forEach(child => {
             units.push(child.id);
             stack.push(child.id);
           });
         }
-        
+
         return units;
       };
 
@@ -241,26 +241,36 @@ export const assignMemberToGroup = async (groupId, memberId, userId) => {
     throw new NotFoundError('Registration not found for member in this event');
   }
 
-  // Upsert GroupAssignment
-  const assignment = await prisma.groupAssignment.upsert({
+  // Check for existing assignments for this event
+  const existingAssignments = await prisma.groupAssignment.findMany({
     where: { registrationId: registration.id },
-    create: {
+    include: { group: true }
+  });
+
+  // Find if we have an assignment of same TYPE
+  const sameTypeAssignment = existingAssignments.find(a => a.group.type === group.type);
+
+  if (sameTypeAssignment) {
+    // Update existing assignment of same type
+    return prisma.groupAssignment.update({
+      where: { id: sameTypeAssignment.id },
+      data: {
+        groupId,
+        assignedBy: userId,
+        assignedAt: new Date(),
+      },
+    });
+  }
+
+  // Create new assignment
+  return prisma.groupAssignment.create({
+    data: {
       groupId,
       registrationId: registration.id,
       memberId,
-      assignedBy: userId
+      assignedBy: userId,
     },
-    update: {
-      groupId,
-      assignedBy: userId
-    },
-    include: {
-      group: true,
-      member: true
-    }
   });
-
-  return assignment;
 };
 
 /**
@@ -290,8 +300,11 @@ export const removeMemberFromGroup = async (groupId, memberId, userId) => {
     throw new NotFoundError('Registration not found');
   }
 
-  const assignment = await prisma.groupAssignment.findUnique({
-    where: { registrationId: registration.id }
+  const assignment = await prisma.groupAssignment.findFirst({
+    where: {
+      registrationId: registration.id,
+      groupId: groupId
+    }
   });
 
   if (!assignment || assignment.groupId !== groupId) {
@@ -413,7 +426,7 @@ export const bulkAssignGroups = async (eventId, assignments, strategy = 'manual'
     const unassignedRegistrations = await prisma.registration.findMany({
       where: {
         eventId,
-        groupAssignment: null,
+        groupAssignments: { none: {} },
       },
     });
 
@@ -476,4 +489,45 @@ export const deactivateGroup = async (groupId, userId) => {
   // });
 
   return group;
+};
+
+/**
+ * Assign member to a Bible Study group (Random Balanced Strategy)
+ */
+export const assignToBibleStudy = async (eventId, registrationId, memberId, userId) => {
+  // 1. Find all Bible Study groups for this event
+  const groups = await prisma.eventGroup.findMany({
+    where: {
+      eventId,
+      type: 'BIBLE_STUDY'
+    },
+    include: {
+      _count: {
+        select: { assignments: true }
+      }
+    }
+  });
+
+  if (groups.length === 0) {
+    return null; // No bible study groups to assign to
+  }
+
+  // 2. Find minimum member count
+  const minCount = Math.min(...groups.map(g => g._count.assignments));
+
+  // 3. Filter groups that have the minimum count (candidates for assignment)
+  const candidates = groups.filter(g => g._count.assignments === minCount);
+
+  // 4. Pick a random candidate
+  const selectedGroup = candidates[Math.floor(Math.random() * candidates.length)];
+
+  // 5. Create assignment directly
+  return prisma.groupAssignment.create({
+    data: {
+      groupId: selectedGroup.id,
+      registrationId,
+      memberId,
+      assignedBy: userId || 'SYSTEM',
+    }
+  });
 };
