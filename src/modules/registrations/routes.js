@@ -9,6 +9,7 @@ import {
   cancelRegistrationHandler,
   getEventRegistrationsHandler,
   getMemberRegistrationsHandler,
+  checkRegistrationStatusHandler,
   getRegistrarStatisticsHandler,
   getGlobalRegistrationsStatsHandler,
   markAttendanceHandler,
@@ -40,6 +41,9 @@ router.get('/stats/summary', authenticate, getGlobalRegistrationsStatsHandler);
 
 // GET /api/registrations/export/csv - Export registrations as CSV (MUST be before /:id)
 router.get('/export/csv', authenticate, exportRegistrationsHandler);
+
+// GET /api/registrations/check/:eventId/:memberId - Check registration status (MUST be before /:id)
+router.get('/check/:eventId/:memberId', authenticate, checkRegistrationStatusHandler);
 
 // GET /api/registrations/:id - Get registration details
 // GET /api/registrations/:id - Get registration details

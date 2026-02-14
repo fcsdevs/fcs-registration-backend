@@ -3,6 +3,7 @@ import {
   createCenterHandler,
   listCentersHandler,
   listActiveCentersHandler,
+  listAllCentersForAdminHandler,
   getCenterHandler,
   updateCenterHandler,
   addCenterAdminHandler,
@@ -16,6 +17,9 @@ const router = express.Router();
 
 // GET /api/centers/active - List active centers for registration
 router.get('/active', listActiveCentersHandler);
+
+// GET /api/centers/admin/all - List all centers for admin based on scope (MUST be before /:id)
+router.get('/admin/all', authenticate, listAllCentersForAdminHandler);
 
 // GET /api/centers - List all centers
 router.get('/', authenticate, listCentersHandler);

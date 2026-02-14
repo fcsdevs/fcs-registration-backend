@@ -81,35 +81,15 @@ export const listGroupsByEvent = async (eventId, params = {}) => {
 
   // If listing all groups (no eventId) and user is not global admin, apply scope filtering
   if (!eventId && userId && !isGlobalAdmin) {
-    // Get user's unit hierarchy
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { unit: true }
-    });
+    const { getAdminScope } = await import('../../middleware/scope-validator.js');
+    const { getAllDescendantIds } = await import('../units/service.js');
 
-    if (user?.unit) {
-      // Get all descendant units
-      const getUserHierarchy = async (unitId) => {
-        const units = [unitId];
-        const stack = [unitId];
+    const scope = await getAdminScope(userId);
 
-        while (stack.length > 0) {
-          const currentUnitId = stack.pop();
-          const children = await prisma.unit.findMany({
-            where: { parentId: currentUnitId },
-            select: { id: true }
-          });
+    if (!scope.isGlobal && scope.unitId) {
+      const descendantIds = await getAllDescendantIds(scope.unitId);
+      const userUnitIds = [scope.unitId, ...descendantIds];
 
-          children.forEach(child => {
-            units.push(child.id);
-            stack.push(child.id);
-          });
-        }
-
-        return units;
-      };
-
-      const userUnitIds = await getUserHierarchy(user.unitId);
       where = {
         ...where,
         event: {
@@ -117,6 +97,12 @@ export const listGroupsByEvent = async (eventId, params = {}) => {
             in: userUnitIds
           }
         }
+      };
+    } else if (!scope.isGlobal && !scope.unitId) {
+      // No scope = no groups visible
+      return {
+        groups: [],
+        meta: { total: 0, page: Number(page), limit: Number(limit), pages: 0 }
       };
     }
   }

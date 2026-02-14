@@ -187,6 +187,7 @@ export const listActiveCenters = async (eventId, query = {}) => {
         id: true,
         centerName: true,
         country: true,
+        stateId: true,
         state: { select: { id: true, name: true } },
         address: true,
         isActive: true,
@@ -417,4 +418,113 @@ export const getCentersByState = async (eventId, stateId) => {
       address: true,
     },
   });
+};
+
+/**
+ * List all centers for admin based on their scope
+ * National admins see all centers
+ * Area/State/Branch admins see centers within their unit hierarchy
+ */
+export const listAllCentersForAdmin = async (userId, query = {}) => {
+  const { page, limit, eventId, search, isActive } = query;
+  const { skip, take } = getPaginationParams(page, limit);
+
+  // Get user's admin scope
+  const { getAdminScope } = await import('../../middleware/scope-validator.js');
+  const scope = await getAdminScope(userId);
+
+  if (!scope.isGlobal && !scope.unitId) {
+    throw new ForbiddenError('You do not have admin privileges');
+  }
+
+  const where = {};
+
+  // Apply event filter if provided
+  if (eventId) {
+    where.eventId = eventId;
+  }
+
+  // Apply active filter if provided
+  if (isActive !== undefined) {
+    where.isActive = isActive === 'true' || isActive === true;
+  }
+
+  // Apply search filter
+  if (search) {
+    where.OR = [
+      { centerName: { contains: search, mode: 'insensitive' } },
+      { address: { contains: search, mode: 'insensitive' } },
+      { state: { name: { contains: search, mode: 'insensitive' } } }
+    ];
+  }
+
+  // Apply scope-based filtering
+  if (!scope.isGlobal) {
+    // Get all descendant units (including the admin's unit)
+    const { getAllDescendantIds } = await import('../units/service.js');
+    const descendantIds = await getAllDescendantIds(scope.unitId);
+    const allUnitIds = [scope.unitId, ...descendantIds];
+
+    // Filter centers by state (unit) within the admin's scope
+    const searchFilter = where.OR;
+    delete where.OR;
+
+    where.AND = [
+      {
+        OR: [
+          { stateId: { in: allUnitIds } },
+          { stateId: null } // Include centers without state assignment
+        ]
+      }
+    ];
+
+    if (searchFilter) {
+      where.AND.push({ OR: searchFilter });
+    }
+  }
+
+  const [centers, total] = await Promise.all([
+    prisma.eventCenter.findMany({
+      where,
+      skip,
+      take,
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+            participationMode: true,
+          }
+        },
+        state: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          }
+        },
+        admins: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                phoneNumber: true,
+                email: true,
+              }
+            }
+          }
+        },
+        _count: {
+          select: {
+            registrations: true,
+            attendances: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.eventCenter.count({ where }),
+  ]);
+
+  return formatPaginatedResponse(centers, total, parseInt(page || 1), parseInt(limit || 20));
 };

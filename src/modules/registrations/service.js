@@ -647,6 +647,54 @@ export const getMemberRegistrations = async (memberId, query) => {
   return formatPaginatedResponse(registrations, total, parseInt(page || 1), parseInt(limit || 20));
 };
 
+/**
+ * Check if a member is already registered for an event
+ */
+export const checkRegistrationStatus = async (eventId, memberId) => {
+  // Check if registration exists
+  const existingRegistration = await prisma.registration.findFirst({
+    where: {
+      eventId,
+      memberId,
+      status: { not: 'CANCELLED' } // Exclude cancelled registrations
+    },
+    include: {
+      event: {
+        select: {
+          id: true,
+          title: true,
+          startDate: true,
+          endDate: true,
+        }
+      },
+      participation: {
+        include: {
+          center: {
+            select: {
+              id: true,
+              centerName: true,
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (existingRegistration) {
+    return {
+      isRegistered: true,
+      registration: existingRegistration,
+      message: `This member is already registered for ${existingRegistration.event.title}`
+    };
+  }
+
+  return {
+    isRegistered: false,
+    registration: null,
+    message: 'Member is not registered for this event'
+  };
+};
+
 export const getRegistrarStatistics = async (eventId, registrarId, centerId) => {
   // 1. Registered By Me
   const registeredByMe = await prisma.registration.count({

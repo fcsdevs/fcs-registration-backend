@@ -3,6 +3,7 @@ import {
   getCenterById,
   listCentersByEvent,
   listActiveCenters,
+  listAllCentersForAdmin,
   updateCenter,
   addCenterAdmin,
   removeCenterAdmin,
@@ -118,6 +119,38 @@ export const listActiveCentersHandler = async (req, res, next) => {
     const centers = await listActiveCenters(eventId, {
       ...value,
       state,
+    });
+
+    res.status(200).json({
+      data: centers,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/centers/admin/all - List all centers for admin based on scope
+ * National admins see all centers
+ * Area/State/Branch admins see centers within their unit hierarchy
+ */
+export const listAllCentersForAdminHandler = async (req, res, next) => {
+  try {
+    const { error, value } = paginationSchema.validate(req.query);
+    if (error) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: error.details[0].message,
+        },
+      });
+    }
+
+    const centers = await listAllCentersForAdmin(req.userId, {
+      ...value,
+      eventId: req.query.eventId,
+      search: req.query.search,
+      isActive: req.query.isActive,
     });
 
     res.status(200).json({

@@ -143,9 +143,9 @@ export const requireScope = (paramName = 'unitId') => {
       }
 
       // Get target unit from request (param, query, or body)
-      const targetUnitId = req.params[paramName] || 
-                          req.query[paramName] || 
-                          req.body?.[paramName];
+      const targetUnitId = req.params[paramName] ||
+        req.query[paramName] ||
+        req.body?.[paramName];
 
       if (!targetUnitId) {
         // No scope parameter = global resource, allow it
@@ -208,7 +208,7 @@ export const canManageUser = async (adminId, targetUserId) => {
   }
 
   const adminScope = await getAdminScope(adminId);
-  
+
   // Global admins (National) can manage anyone
   if (adminScope.isGlobal) {
     return true;

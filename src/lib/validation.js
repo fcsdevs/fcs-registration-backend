@@ -277,6 +277,7 @@ export const createCenterSchema = Joi.object({
 export const updateCenterSchema = Joi.object({
   centerName: Joi.string().min(3).max(100).optional(),
   address: Joi.string().min(5).max(200).optional(),
+  isActive: Joi.boolean().optional(),
 }).min(1);
 
 // ============================================================

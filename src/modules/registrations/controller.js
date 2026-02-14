@@ -8,6 +8,7 @@ import {
   cancelRegistration,
   getRegistrationsByEvent,
   getMemberRegistrations,
+  checkRegistrationStatus,
   getRegistrarStatistics,
   getGlobalRegistrationsStats,
   markAttendance,
@@ -250,6 +251,32 @@ export const getMemberRegistrationsHandler = async (req, res, next) => {
     });
 
     res.status(200).json(registrations);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/registrations/check/:eventId/:memberId
+ * Check if a member is already registered for an event
+ */
+export const checkRegistrationStatusHandler = async (req, res, next) => {
+  try {
+    const { eventId, memberId } = req.params;
+
+    if (!eventId || !memberId) {
+      return res.status(400).json({
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'eventId and memberId are required',
+        },
+      });
+    }
+
+    const status = await checkRegistrationStatus(eventId, memberId);
+    res.status(200).json({
+      data: status,
+    });
   } catch (error) {
     next(error);
   }
