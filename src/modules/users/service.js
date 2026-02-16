@@ -268,12 +268,12 @@ export const getUserById = async (userId) => {
     };
 };
 
-export const updateUserProfile = async (userId, data) => {
-    const { firstName, lastName, phoneNumber, profiles } = data;
+export const updateUserProfile = async (targetUserId, data) => {
+    const { firstName, lastName, phoneNumber, email, isActive, profiles } = data;
 
     // 1. Get User and Member
     const user = await prisma.authUser.findUnique({
-        where: { id: userId },
+        where: { id: targetUserId },
         include: { members: true }
     });
 
@@ -281,7 +281,18 @@ export const updateUserProfile = async (userId, data) => {
     const member = user.members[0];
     if (!member) throw new NotFoundError("Member profile");
 
-    // 2. Update Member
+    // 2. Update AuthUser if email or isActive provided
+    if (email !== undefined || isActive !== undefined) {
+        await prisma.authUser.update({
+            where: { id: user.id },
+            data: {
+                ...(email && { email }),
+                ...(isActive !== undefined && { isActive })
+            }
+        });
+    }
+
+    // 3. Update Member
     return await prisma.member.update({
         where: { id: member.id },
         data: {

@@ -286,7 +286,7 @@ export const updateCenterSchema = Joi.object({
 
 export const paginationSchema = Joi.object({
   page: Joi.number().min(1).default(1),
-  limit: Joi.number().min(1).max(1000).default(20),
+  limit: Joi.number().min(1).max(1000).default(100),
   type: Joi.string().optional(),
   parentUnitId: Joi.string().optional(),
   recursive: Joi.string().valid('true', 'false').optional(),

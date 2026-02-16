@@ -161,6 +161,7 @@ export const registerUser = async (data) => {
     email: authUser.email,
     member,
     token,
+    centers: [],
     session: {
       id: session.id,
       expiresAt: session.expiresAt,
@@ -293,6 +294,20 @@ export const loginUser = async (identifier, password) => {
     type: primaryAssignment.unit.unitType?.name
   } : null;
 
+  // Get Center Admin assignments
+  const centerAdmins = await prisma.centerAdmin.findMany({
+    where: { userId: authUser.id },
+    include: {
+      center: {
+        select: {
+          id: true,
+          centerName: true,
+          eventId: true
+        }
+      }
+    }
+  });
+
   return {
     id: authUser.id,
     phoneNumber: authUser.phoneNumber,
@@ -300,6 +315,7 @@ export const loginUser = async (identifier, password) => {
     member,
     roles,
     unit,
+    centers: centerAdmins.map(ca => ca.center),
     token,
     session: {
       id: session.id,
@@ -579,6 +595,20 @@ export const getUserById = async (userId) => {
     },
   });
 
+  // Get Center Admin assignments
+  const centerAdmins = await prisma.centerAdmin.findMany({
+    where: { userId },
+    include: {
+      center: {
+        select: {
+          id: true,
+          centerName: true,
+          eventId: true
+        }
+      }
+    }
+  });
+
   const roles = member?.roleAssignments?.map((ra) => ra.role.name) || [];
   const primaryAssignment = member?.roleAssignments?.find(ra => ra.unitId);
   const unit = primaryAssignment && primaryAssignment.unit ? {
@@ -591,6 +621,7 @@ export const getUserById = async (userId) => {
     member,
     roles,
     unit,
+    centers: centerAdmins.map(ca => ca.center)
   };
 };
 

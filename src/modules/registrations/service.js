@@ -543,7 +543,9 @@ export const cancelRegistration = async (registrationId, reason, userId) => {
 
   if (userId) {
     const isSelf = registration.member.authUserId === userId;
-    if (!isSelf) {
+    const isRegistrar = registration.registeredBy === userId;
+
+    if (!isSelf && !isRegistrar) {
       const hasAccess = await checkScopeAccess(userId, registration.event.unitId);
       if (!hasAccess) throw new ForbiddenError('You do not have permission to cancel this registration');
     }
@@ -707,18 +709,32 @@ export const getRegistrarStatistics = async (eventId, registrarId, centerId) => 
     }
   });
 
-  // 2. Center Stats (if centerId provided)
+  // 2. Infer centerId if missing
+  let effectiveCenterId = centerId;
+  if (!effectiveCenterId) {
+    const centerAdmin = await prisma.centerAdmin.findFirst({
+      where: {
+        userId: registrarId,
+        center: { eventId }
+      }
+    });
+    if (centerAdmin) {
+      effectiveCenterId = centerAdmin.centerId;
+    }
+  }
+
+  // 3. Center Stats (if centerId/effectiveCenterId provided)
   let centerStats = {
     totalRegistered: 0,
     totalConfirmed: 0,
     totalCheckedIn: 0
   };
 
-  if (centerId) {
+  if (effectiveCenterId) {
     const [total, confirmed, checkedIn] = await Promise.all([
-      prisma.registration.count({ where: { eventId, centerId } }),
-      prisma.registration.count({ where: { eventId, centerId, status: 'CONFIRMED' } }),
-      prisma.registration.count({ where: { eventId, centerId, status: 'CHECKED_IN' } })
+      prisma.registration.count({ where: { eventId, centerId: effectiveCenterId } }),
+      prisma.registration.count({ where: { eventId, centerId: effectiveCenterId, status: 'CONFIRMED' } }),
+      prisma.registration.count({ where: { eventId, centerId: effectiveCenterId, status: 'CHECKED_IN' } })
     ]);
     centerStats = { totalRegistered: total, totalConfirmed: confirmed, totalCheckedIn: checkedIn };
   }
