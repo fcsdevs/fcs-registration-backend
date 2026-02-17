@@ -79,6 +79,7 @@ export const listRegistrationsHandler = async (req, res, next) => {
       ids: req.query.ids,
       unitId: effectiveUnitId,
       search: req.query.search,
+      userId: req.userId,
       adminScope: scope,
     });
 

@@ -233,7 +233,7 @@ export const getRegistrationById = async (registrationId, userId) => {
  * List registrations with filters
  */
 export const listRegistrations = async (query) => {
-  const { page, limit, eventId, memberId, status, centerId, unitId, search, registeredBy, ids } = query;
+  const { page, limit, eventId, memberId, status, centerId, unitId, search, registeredBy, ids, userId } = query;
   const { skip, take } = getPaginationParams(page, limit);
 
   const where = {};
@@ -251,7 +251,17 @@ export const listRegistrations = async (query) => {
   if (unitId) {
     const descendants = await getAllDescendantIds(unitId);
     const allUnitIds = [unitId, ...descendants];
-    where.event = { unitId: { in: allUnitIds } };
+
+    // If we're filtering by unit, we also want to allow registrars to see their OWN registrations
+    // even if they were for events in a different unit (relevant for the Registration Tray)
+    if (userId && !eventId) {
+      where.OR = [
+        { event: { unitId: { in: allUnitIds } } },
+        { registeredBy: userId }
+      ];
+    } else {
+      where.event = { unitId: { in: allUnitIds } };
+    }
   }
 
   if (search) {
