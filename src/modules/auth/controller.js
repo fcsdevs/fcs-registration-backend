@@ -231,16 +231,21 @@ export const forgotPasswordHandler = async (req, res, next) => {
  */
 export const resetPasswordHandler = async (req, res, next) => {
   try {
-    // Frontend sends { identifier, otp, password } which maps to our service args
-    const { identifier, otp, password } = req.body;
-
-    if (!identifier || !otp || !password) {
+    // Validate request
+    const { error, value } = resetPasswordSchema.validate(req.body);
+    if (error) {
       return res.status(400).json({
-        error: { code: 'VALIDATION_ERROR', message: 'Missing required fields' }
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: error.details[0].message,
+        },
       });
     }
 
-    const result = await resetPasswordService(identifier, otp, password);
+    const { email, phoneNumber, identifier, code, newPassword } = value;
+    const resolvedIdentifier = email || phoneNumber || identifier;
+
+    const result = await resetPasswordService(resolvedIdentifier, code, newPassword);
     res.status(200).json({
       data: result,
       message: 'Password reset successfully'

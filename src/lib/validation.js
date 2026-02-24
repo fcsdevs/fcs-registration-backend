@@ -80,10 +80,11 @@ export const resetPasswordSchema = Joi.object({
     'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
   }),
   email: Joi.string().email().optional(),
+  identifier: Joi.string().optional(),
   code: Joi.string().length(6).required(),
   newPassword: Joi.string().min(8).required(),
   confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required(),
-}).or('phoneNumber', 'email');
+}).or('phoneNumber', 'email', 'identifier');
 
 export const checkExistenceSchema = Joi.object({
   email: Joi.string().email().allow('', null).optional(),
