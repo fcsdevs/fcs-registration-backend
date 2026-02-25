@@ -4,6 +4,7 @@ import {
     revokeUserRoleHandler,
     getUserByIdHandler,
     updateProfileHandler,
+    updateUserHandler,
 } from './controller.js';
 import express from 'express';
 import { authenticate, authorize } from '../../middleware/auth.js';
@@ -18,6 +19,9 @@ router.get('/', authenticate, authorize(['National Admin', 'Regional Admin', 'St
 
 // GET /api/users/:id - Get user details
 router.get('/:id', authenticate, authorize(['National Admin', 'Regional Admin', 'State Admin', 'Zone Admin', 'Area Admin', 'Branch Admin']), getUserByIdHandler);
+
+// PUT /api/users/:id - Update user details (for admins)
+router.put('/:id', authenticate, authorize(['National Admin', 'Regional Admin', 'State Admin', 'Zone Admin', 'Area Admin']), updateUserHandler);
 
 // PUT /api/users/:id/roles - Assign/Update user role
 router.put('/:id/roles', authenticate, authorize(['National Admin', 'Regional Admin', 'State Admin', 'Zone Admin', 'Area Admin']), assignUserRoleHandler);

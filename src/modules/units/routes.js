@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optional } from '../../middleware/auth.js';
 import {
   createUnitHandler,
   listUnitsHandler,
@@ -25,7 +25,7 @@ router.post('/', authenticate, createUnitHandler);
  * GET /api/units
  * Publicly accessible but scoped if authenticated
  */
-router.get('/', listUnitsHandler);
+router.get('/', optional, listUnitsHandler);
 
 /**
  * GET /api/units/hierarchy

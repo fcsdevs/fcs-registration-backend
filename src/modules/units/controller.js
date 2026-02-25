@@ -81,6 +81,8 @@ export const listUnitsHandler = async (req, res, next) => {
     let allowedIds = undefined;
     if (req.userId) {
       const scope = await getEffectiveScope(req.userId);
+      console.log(`🔍 [DEBUG] Enforcing scope for Unit List: isAdmin=${!scope.isGlobal}, unitId=${scope.unitId}`);
+
       if (!scope.isGlobal) {
         if (!scope.unitId) {
           // Admin with no unit assigned should see nothing
@@ -90,6 +92,8 @@ export const listUnitsHandler = async (req, res, next) => {
           allowedIds = [scope.unitId, ...descendants];
         }
       }
+    } else {
+      console.log('🔍 [DEBUG] Unit list requested by Guest/Unauthenticated user');
     }
 
     const result = await listUnits({

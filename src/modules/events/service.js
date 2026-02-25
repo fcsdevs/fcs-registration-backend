@@ -87,6 +87,7 @@ export const getEventById = async (eventId) => {
           id: true,
           name: true,
           code: true,
+          unitType: { select: { name: true, level: true } }
         },
       },
       settings: true,
@@ -150,7 +151,13 @@ export const listEvents = async (query) => {
       skip,
       take,
       include: {
-        unit: { select: { name: true } },
+        unit: {
+          select: {
+            id: true,
+            name: true,
+            unitType: { select: { name: true, level: true } }
+          }
+        },
         _count: {
           select: {
             registrations: true,
