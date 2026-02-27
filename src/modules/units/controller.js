@@ -17,7 +17,7 @@ import Joi from 'joi';
 const createUnitSchema = Joi.object({
   name: Joi.string().required(),
   type: Joi.string()
-    .valid('National', 'Regional', 'State', 'Zone', 'Area', 'Branch')
+    .valid('National', 'Area', 'State', 'Zone', 'Branch')
     .required(),
   parentUnitId: Joi.string(),
   description: Joi.string().allow(''),
@@ -26,9 +26,10 @@ const createUnitSchema = Joi.object({
 
 const updateUnitSchema = Joi.object({
   name: Joi.string(),
-  type: Joi.string().valid('National', 'Regional', 'State', 'Zone', 'Area', 'Branch'),
+  type: Joi.string().valid('National', 'Area', 'State', 'Zone', 'Branch'),
   description: Joi.string().allow(''),
   leaderId: Joi.string(),
+  parentUnitId: Joi.string(),
 });
 
 import { getEffectiveScope } from '../users/service.js';

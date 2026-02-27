@@ -128,11 +128,29 @@ export const createUnit = async (data, userId) => {
   if (parentUnitId) {
     const parentUnit = await prisma.unit.findUnique({
       where: { id: parentUnitId },
+      include: { unitType: true }
     });
 
     if (!parentUnit) {
       throw new NotFoundError('Parent unit not found');
     }
+
+    // Hierarchy Validation
+    const parentType = parentUnit.unitType.name;
+    const allowedParents = {
+      'Area': ['National'],
+      'State': ['Area'],
+      'Zone': ['State'],
+      'Branch': ['Zone']
+    };
+
+    if (allowedParents[type] && !allowedParents[type].includes(parentType)) {
+      throw new AppError(`Invalid hierarchy: ${type} cannot be under ${parentType}`, 400);
+    }
+  } else if (type !== 'National') {
+    // Non-national units must have a parent (except maybe Area/State in some legacy cases, 
+    // but for new ones we should enforce it)
+    throw new AppError(`${type} level units must have a parent unit`, 400);
   }
 
   // 3. Generate Code
@@ -211,6 +229,7 @@ export const listUnits = async (query = {}) => {
   }
 
   const where = {
+    isActive: true, // Only show active units by default
     ...(type && { unitType: { name: type } }),
     ...(parentUnitId && !(recursive === true || recursive === 'true') && { parentId: parentUnitId }),
     ...(unitIds && { id: { in: unitIds } }),
@@ -276,12 +295,22 @@ export const updateUnit = async (unitId, data, userId) => {
     }
   }
 
-  const { name, type, description } = data;
+  const { name, type, description, parentUnitId, leaderId } = data;
 
   let unitTypeId = undefined;
   if (type) {
-    const typeRecord = await prisma.unitType.findUnique({ where: { name: type } });
+    const typeRecord = await prisma.unitType.findFirst({
+      where: { name: { equals: type, mode: 'insensitive' } }
+    });
     if (typeRecord) unitTypeId = typeRecord.id;
+  }
+
+  // If parentUnitId is changed, validate hierarchy
+  if (parentUnitId && parentUnitId !== unit.parentId) {
+    // Basic cyclic check: cannot be its own parent
+    if (parentUnitId === unitId) {
+      throw new AppError('A unit cannot be its own parent', 400);
+    }
   }
 
   const updated = await prisma.unit.update({
@@ -289,7 +318,9 @@ export const updateUnit = async (unitId, data, userId) => {
     data: {
       ...(name && { name }),
       ...(unitTypeId && { unitTypeId }),
-      ...(description && { description }),
+      ...(description !== undefined && { description }),
+      ...(parentUnitId !== undefined && { parentId: parentUnitId || null }),
+      ...(leaderId !== undefined && { leaderId: leaderId || null }),
     },
     include: {
       unitType: true
@@ -299,6 +330,7 @@ export const updateUnit = async (unitId, data, userId) => {
   return {
     ...updated,
     type: updated.unitType.name,
+    parentUnitId: updated.parentId,
   };
 };
 

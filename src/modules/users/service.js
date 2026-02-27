@@ -1,7 +1,7 @@
 import { getPrismaClient } from '../../lib/prisma.js';
 import { NotFoundError, ValidationError, ForbiddenError } from '../../middleware/error-handler.js';
 import { getAllDescendantIds } from '../units/service.js';
-import { getAdminScope, canManageUser } from '../../middleware/scope-validator.js';
+import { getAdminScope, canManageUser, isWithinScope } from '../../middleware/scope-validator.js';
 
 const prisma = getPrismaClient();
 
@@ -143,10 +143,15 @@ export const assignUserRole = async (targetUserId, roleName, unitId, assignedByU
 
     // 2. Verify scope access (HRBAC: Can assignedByUserId assign to this unit?)
     if (unitId) {
-        const hasAccess = await canManageUser(assignedByUserId, targetUserId);
-        if (!hasAccess) {
-            console.error('[SERVICE] HRBAC violation. Admin cannot assign role to this unit.');
-            throw new ForbiddenError('You do not have permission to assign roles to this user');
+        // Check if admin is within scope of the target unit
+        // (allows assigning to users who don't yet have a role)
+        const adminScope = await getAdminScope(assignedByUserId);
+        if (!adminScope.isGlobal) {
+            const hasAccess = await isWithinScope(assignedByUserId, unitId);
+            if (!hasAccess) {
+                console.error('[SERVICE] HRBAC violation. Admin cannot assign role to this unit.');
+                throw new ForbiddenError('You do not have permission to assign roles to this unit');
+            }
         }
     }
 

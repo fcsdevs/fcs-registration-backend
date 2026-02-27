@@ -217,7 +217,9 @@ model Unit {
   updatedAt         DateTime          @updatedAt
 
   events            Event[]
-  eventCenters      EventCenter[]
+  stateCenters      EventCenter[]     @relation("StateCenters")
+  areaCenters       EventCenter[]     @relation("AreaCenters")
+  zoneCenters       EventCenter[]     @relation("ZoneCenters")
   roleAssignments   RoleAssignment[]
   auditLogs         AuditLog[]
   invites           Invite[]          // Added back-relation
@@ -341,9 +343,11 @@ model EventCenter {
   centerName        String
   country           String            @default("Nigeria")
   stateId           String?
-  state             Unit?             @relation(fields: [stateId], references: [id])
+  state             Unit?             @relation("StateCenters", fields: [stateId], references: [id])
   areaId            String?
+  area              Unit?             @relation("AreaCenters", fields: [areaId], references: [id])
   zoneId            String?
+  zone              Unit?             @relation("ZoneCenters", fields: [zoneId], references: [id])
   address           String
   isActive          Boolean           @default(true)
   createdBy         String
@@ -358,6 +362,8 @@ model EventCenter {
 
   @@index([eventId])
   @@index([stateId])
+  @@index([areaId])
+  @@index([zoneId])
 }
 
 model CenterAdmin {
@@ -388,6 +394,7 @@ model Registration {
   registeredBy      String
   registeredByUser  AuthUser          @relation("RegisteredBy", fields: [registeredBy], references: [id])
   registrationDate  DateTime          @default(now())
+  attendanceIntent  String?           @default("CONFIRMED") // "CONFIRMED" | "TENTATIVE"
   status            String            @default("CONFIRMED") // "PENDING" | "CONFIRMED" | "CANCELLED"
   cancellationReason String?
   cancelledAt       DateTime?

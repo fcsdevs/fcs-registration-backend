@@ -53,12 +53,34 @@ export const createCenter = async (data, userId) => {
     }
   }
 
+  // Verify area exists if provided
+  if (data.areaId) {
+    const area = await prisma.unit.findUnique({
+      where: { id: data.areaId },
+    });
+    if (!area) {
+      throw new NotFoundError('Area');
+    }
+  }
+
+  // Verify zone exists if provided
+  if (data.zoneId) {
+    const zone = await prisma.unit.findUnique({
+      where: { id: data.zoneId },
+    });
+    if (!zone) {
+      throw new NotFoundError('Zone');
+    }
+  }
+
   const center = await prisma.eventCenter.create({
     data: {
       eventId,
       centerName,
       country: country || 'Nigeria',
       stateId: stateId || null,
+      areaId: data.areaId || null,
+      zoneId: data.zoneId || null,
       address,
       createdBy: userId,
     },
@@ -94,6 +116,20 @@ export const getCenterById = async (centerId, userId) => {
         },
       },
       state: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
+      area: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+        },
+      },
+      zone: {
         select: {
           id: true,
           name: true,
@@ -147,6 +183,13 @@ export const listCentersByEvent = async (eventId, query) => {
       include: {
         admins: { select: { user: { select: { phoneNumber: true } } } },
         state: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+        zone: {
           select: {
             id: true,
             name: true,
@@ -229,6 +272,9 @@ export const updateCenter = async (centerId, data, userId) => {
       centerName: centerName || center.centerName,
       address: address || center.address,
       isActive: isActive !== undefined ? isActive : center.isActive,
+      stateId: data.stateId !== undefined ? data.stateId : center.stateId,
+      areaId: data.areaId !== undefined ? data.areaId : center.areaId,
+      zoneId: data.zoneId !== undefined ? data.zoneId : center.zoneId,
     },
   });
 };
@@ -454,7 +500,9 @@ export const listAllCentersForAdmin = async (userId, query = {}) => {
     where.OR = [
       { centerName: { contains: search, mode: 'insensitive' } },
       { address: { contains: search, mode: 'insensitive' } },
-      { state: { name: { contains: search, mode: 'insensitive' } } }
+      { state: { name: { contains: search, mode: 'insensitive' } } },
+      { area: { name: { contains: search, mode: 'insensitive' } } },
+      { zone: { name: { contains: search, mode: 'insensitive' } } }
     ];
   }
 
@@ -497,6 +545,20 @@ export const listAllCentersForAdmin = async (userId, query = {}) => {
           }
         },
         state: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          }
+        },
+        area: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          }
+        },
+        zone: {
           select: {
             id: true,
             name: true,

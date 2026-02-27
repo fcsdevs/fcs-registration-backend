@@ -47,14 +47,15 @@ export const getAdminScope = async (userId) => {
   const hierarchyLevels = ['Area', 'State', 'Zone', 'Branch'];
   for (const level of hierarchyLevels) {
     const assignment = member.roleAssignments.find(ra =>
-      ra.unit?.unitType?.name === level
+      ra.unit?.unitType?.name === level ||
+      ra.role?.name?.toLowerCase().includes(level.toLowerCase())
     );
     if (assignment) {
       return {
         unitId: assignment.unitId,
         isGlobal: false,
         level: level,
-        unitName: assignment.unit.name,
+        unitName: assignment.unit?.name,
         hierarchy: { [level.toLowerCase()]: true }
       };
     }

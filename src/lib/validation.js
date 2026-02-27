@@ -271,7 +271,9 @@ export const createCenterSchema = Joi.object({
   eventId: Joi.string().required(),
   centerName: Joi.string().min(3).max(100).required(),
   country: Joi.string().default('Nigeria'),
-  stateId: Joi.string().optional(),
+  stateId: Joi.string().allow('', null).optional(),
+  areaId: Joi.string().allow('', null).optional(),
+  zoneId: Joi.string().allow('', null).optional(),
   address: Joi.string().min(5).max(200).required(),
 });
 
@@ -279,6 +281,9 @@ export const updateCenterSchema = Joi.object({
   centerName: Joi.string().min(3).max(100).optional(),
   address: Joi.string().min(5).max(200).optional(),
   isActive: Joi.boolean().optional(),
+  stateId: Joi.string().allow('', null).optional(),
+  areaId: Joi.string().allow('', null).optional(),
+  zoneId: Joi.string().allow('', null).optional(),
 }).min(1);
 
 // ============================================================
