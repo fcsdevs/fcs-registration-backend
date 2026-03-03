@@ -126,7 +126,7 @@ model Member {
   level             String?           // New: Class / Level
   course            String?           // New: Tertiary only
   graduationYear    Int?              // New: Tertiary only
-  membershipCategory String?          // New: PRIMARY | SECONDARY | TERTIARY | ASSOCIATE
+  membershipCategory String?          // New: PRIMARY | SECONDARY | TERTIARY | ASSOCIATE | STAFF | ALUMNI
   yearJoined        Int?              // New: Historical data
   state             String?
   zone              String?           // Text-based Zone/Area
