@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (including dev deps for prisma generate)
+# Install all dependencies (including dev deps to generate prisma)
 RUN npm ci
 
 # Copy prisma schema
@@ -15,7 +15,7 @@ COPY prisma ./prisma
 # Generate Prisma client
 RUN npx prisma generate
 
-# Production stage
+# Final stage
 FROM node:20-slim
 
 WORKDIR /app
@@ -27,8 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN groupadd -g 1001 nodejs && useradd -u 1001 -g nodejs -s /bin/bash -m nodejs
+# Install PM2 globally
+RUN npm install -g pm2
 
 # Copy package files
 COPY package*.json ./
@@ -40,24 +40,16 @@ RUN npm ci --only=production && npm cache clean --force
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Copy application code
+# Copy application code and PM2 config
 COPY src ./src
-
-# Set ownership to non-root user
-RUN chown -R nodejs:nodejs /app
-
-# Switch to non-root user
-USER nodejs
+COPY scripts ./scripts
+COPY ecosystem.config.cjs ./
 
 # Expose port
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+EXPOSE 3005
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start application
-CMD ["node", "src/index.js"]
+# Start application: Run recovery check then start with PM2
+CMD ["sh", "-c", "npm run db:recover:check && pm2-runtime start ecosystem.config.cjs --env production"]

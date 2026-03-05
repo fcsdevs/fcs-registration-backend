@@ -49,7 +49,7 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'https://fcs-registration-system.vercel.app',
+    'https://registration.fcsnigeria.org',
     ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [])
   ],
   credentials: true,
