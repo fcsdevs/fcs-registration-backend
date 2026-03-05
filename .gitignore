@@ -52,6 +52,7 @@ Thumbs.db
 .DS_Store
 
 # Database Backups and Seeds
+backups/
 prisma/backup.js
 prisma/backup.json
 prisma/seed.js
@@ -61,3 +62,18 @@ prisma/restore.js
 prisma/debug-event.js
 prisma/check-health.js
 
+# Untracked files
+RELAY CENTRE SUBCOMMITTEE REPORT - FEB 2026.doc
+RELAY CENTRE SUBCOMMITTEE REPORT - FEB 2026.txt
+scripts/check_units.js
+scripts/cleanup_duplicate_fct.js
+scripts/cleanup_regions_2026.js
+scripts/consolidate_national.js
+scripts/debug_center.js
+scripts/debug_stats.js
+scripts/diagnose_fct_units.js
+scripts/inspect_units.js
+scripts/seed_relay_centers_feb_2026.js
+scripts/seed_relay_centers_with_zones_feb_2026.js
+scripts/setup_system_hierarchy.js
+units_output.json

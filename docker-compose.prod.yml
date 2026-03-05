@@ -58,6 +58,9 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       LOG_LEVEL: info
       CORS_ORIGIN: ${CORS_ORIGIN}
+    command: sh -c "npm run db:recover:check && node src/index.js"
+    volumes:
+      - ./backups:/app/backups
     depends_on:
       postgres:
         condition: service_healthy
