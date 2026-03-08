@@ -47,9 +47,10 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-fcs_registration_db}
-      PORT: 3005
+      PORT: 4005
     volumes:
       - ./backups:/app/backups
+      - ./fcs-backup-drive-1d0e5974e2b6.json:/app/google-drive-credentials.json:ro
     depends_on:
       postgres:
         condition: service_healthy
