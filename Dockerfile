@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev deps to generate prisma)
-RUN npm ci
+RUN npm install
 
 # Copy prisma schema
 COPY prisma ./prisma
@@ -34,7 +34,7 @@ RUN npm install -g pm2
 COPY package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Copy prisma schema and generated client from builder
 COPY --from=builder /app/prisma ./prisma
@@ -46,10 +46,10 @@ COPY scripts ./scripts
 COPY ecosystem.config.cjs ./
 
 # Expose port
-EXPOSE 3005
+EXPOSE 5005
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start application: Run recovery check then start with PM2
-CMD ["sh", "-c", "npm run db:recover:check && pm2-runtime start ecosystem.config.cjs --env production"]
+# Start application: Run recovery check then start with node directly
+CMD ["sh", "-c", "npx prisma migrate deploy && node src/index.js"]
