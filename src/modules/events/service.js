@@ -12,6 +12,7 @@ import {
 } from '../../middleware/error-handler.js';
 import { isWithinScope } from '../../middleware/scope-validator.js';
 import { getAllDescendantIds, getAllAncestorIds } from '../units/service.js';
+import { checkScopeAccess } from '../users/service.js';
 
 const prisma = getPrismaClient();
 
