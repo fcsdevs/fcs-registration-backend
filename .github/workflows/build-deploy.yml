@@ -82,3 +82,31 @@ jobs:
           push: false
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}
           cache-from: type=gha
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            # Update backend code
+            cd /var/www/fcsregistration/fcs-registration-backend
+            git pull origin main
+            
+            # Login to registry on VPS (to pull updated images)
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+            # Restart service with migrations
+            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml up -d
+            
+            # System Cleanup: Free up space by removing unused Docker data
+            docker system prune -f
+
