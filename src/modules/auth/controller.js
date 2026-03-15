@@ -9,7 +9,10 @@ import {
   checkUserExistence,
   requestPasswordReset,
   resetPassword as resetPasswordService,
-  changePassword
+  changePassword,
+  searchRecoveryAccounts,
+  verifyRecoveryDob,
+  resetPasswordByToken
 } from './service.js';
 import {
   registerSchema,
@@ -276,6 +279,65 @@ export const changePasswordHandler = async (req, res, next) => {
     res.status(200).json({
       data: result,
       message: 'Password changed successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+/**
+ * POST /api/auth/recovery/search
+ */
+export const searchAccountsHandler = async (req, res, next) => {
+  try {
+    const { fcsCode, fullName } = req.body;
+    const result = await searchRecoveryAccounts({ fcsCode, fullName });
+    res.status(200).json({
+      data: result,
+      message: 'Found matching accounts'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/auth/recovery/verify-dob
+ */
+export const verifyDobHandler = async (req, res, next) => {
+  try {
+    const { memberId, dob } = req.body;
+    if (!memberId || !dob) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'Member ID and Date of Birth are required' }
+      });
+    }
+
+    const result = await verifyRecoveryDob(memberId, dob);
+    res.status(200).json({
+      data: result,
+      message: 'Date of Birth verified successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/auth/recovery/reset-password
+ */
+export const resetPasswordByTokenHandler = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({
+        error: { code: 'VALIDATION_ERROR', message: 'Token and new password are required' }
+      });
+    }
+
+    const result = await resetPasswordByToken(token, newPassword);
+    res.status(200).json({
+      data: result,
+      message: 'Password reset successfully'
     });
   } catch (error) {
     next(error);
