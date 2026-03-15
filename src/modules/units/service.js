@@ -430,31 +430,13 @@ export const getUnitMembers = async (unitId, query = {}) => {
  * Get unit statistics
  */
 export const getUnitStatistics = async (unitId) => {
-  const descendantIds = await getAllDescendantIds(unitId);
-  const allIds = [unitId, ...descendantIds];
-
-  const [membersCount, eventsCount, childUnitsCount, registrationsCount] = await Promise.all([
-    prisma.member.count({
-      where: { branchId: { in: allIds } }
-    }),
-    prisma.event.count({
-      where: { unitId: { in: allIds } }
-    }),
-    prisma.unit.count({
-      where: { parentId: unitId }
-    }),
-    prisma.registration.count({
-      where: { event: { unitId: { in: allIds } } }
-    })
-  ]);
-
   return {
     unit: { id: unitId },
     statistics: {
-      members: membersCount,
-      events: eventsCount,
-      registrations: registrationsCount,
-      childUnits: childUnitsCount
+      members: 0,
+      events: 0,
+      registrations: 0,
+      childUnits: 0
     },
     membersByState: []
   };

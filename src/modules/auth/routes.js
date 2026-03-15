@@ -11,9 +11,6 @@ import {
   forgotPasswordHandler,
   resetPasswordHandler,
   changePasswordHandler,
-  searchAccountsHandler,
-  verifyDobHandler,
-  resetPasswordByTokenHandler
 } from './controller.js';
 import { authenticate } from '../../middleware/auth.js';
 
@@ -48,11 +45,6 @@ router.post('/reset-password', resetPasswordHandler);
 
 // POST /api/auth/change-password - Change Password (Authenticated)
 router.post('/change-password', authenticate, changePasswordHandler);
-
-// Recovery Flow (Alternative Path)
-router.post('/recovery/search', searchAccountsHandler);
-router.post('/recovery/verify-dob', verifyDobHandler);
-router.post('/recovery/reset-password', resetPasswordByTokenHandler);
 
 // GET /api/auth/me - Get current user
 router.get('/me', authenticate, getCurrentUser);
