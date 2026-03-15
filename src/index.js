@@ -45,14 +45,18 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://registration.fcsnigeria.org',
+    'https://fcsnigeria.org',
     ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [])
   ],
   credentials: true,
+}));
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Timeout middleware
