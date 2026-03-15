@@ -460,20 +460,16 @@ export const deactivateMember = async (memberId) => {
  * Search members by name or FCS code
  */
 export const searchMembers = async (query) => {
-  const searchParts = query.trim().split(/\s+/);
-  
   const members = await prisma.member.findMany({
     where: {
-      AND: searchParts.map(part => ({
-        OR: [
-          { firstName: { contains: part, mode: 'insensitive' } },
-          { lastName: { contains: part, mode: 'insensitive' } },
-          { fcsCode: { contains: part, mode: 'insensitive' } },
-          { email: { contains: part, mode: 'insensitive' } },
-          { otherNames: { contains: part, mode: 'insensitive' } },
-          { phoneNumber: { contains: part } },
-        ],
-      })),
+      OR: [
+        { firstName: { contains: query, mode: 'insensitive' } },
+        { lastName: { contains: query, mode: 'insensitive' } },
+        { fcsCode: { contains: query, mode: 'insensitive' } },
+        { email: { contains: query, mode: 'insensitive' } },
+        { otherNames: { contains: query, mode: 'insensitive' } },
+        { phoneNumber: { contains: query } },
+      ],
       isActive: true,
     },
     select: {
