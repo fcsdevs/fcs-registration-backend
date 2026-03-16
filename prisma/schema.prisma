@@ -1,3 +1,6 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
@@ -8,66 +11,73 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// MODULE 1: AUTHENTICATION & ACCESS
+// ============================================================
+
 model AuthUser {
-  id                      String                      @id @default(cuid())
-  phoneNumber             String?                     @unique
-  email                   String?                     @unique
-  passwordHash            String
-  isActive                Boolean                     @default(true)
-  emailVerified           Boolean                     @default(false)
-  phoneVerified           Boolean                     @default(false)
-  lastLoginAt             DateTime?
-  createdAt               DateTime                    @default(now())
-  updatedAt               DateTime                    @updatedAt
-  attendanceCorrections   AttendanceCorrection[]      @relation("CorrectedBy")
-  attendanceVerifications AttendanceRecord[]          @relation("VerifiedBy")
-  createdAuditLogs        AuditLog[]                  @relation("CreatedBy")
-  sessions                AuthSession[]
-  centerAdmins            CenterAdmin[]
-  createdEvents           Event[]                     @relation("EventCreatedBy")
-  createdCenters          EventCenter[]               @relation("CenterCreatedBy")
-  groupAssignments        GroupAssignment[]           @relation("AssignedBy")
-  sentInvites             Invite[]
-  members                 Member[]
-  otpTokens               OTPToken[]
-  passwordResets          PasswordReset[]
-  registrations           Registration[]              @relation("RegisteredBy")
-  participations          RegistrationParticipation[] @relation("AssignedBy")
-  roleAssignments         RoleAssignment[]
-  managedAssignments      RoleAssignment[]            @relation("AdminManagesAssignment")
+  id                String            @id @default(cuid())
+  phoneNumber       String?           @unique
+  email             String?           @unique
+  passwordHash      String
+  isActive          Boolean           @default(true)
+  emailVerified     Boolean           @default(false)
+  phoneVerified     Boolean           @default(false)
+  lastLoginAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  sessions          AuthSession[]
+  otpTokens         OTPToken[]
+  passwordResets    PasswordReset[]
+  members           Member[]
+  roleAssignments   RoleAssignment[]
+  createdAuditLogs  AuditLog[]        @relation("CreatedBy")
+  createdEvents     Event[]           @relation("EventCreatedBy")
+  createdCenters    EventCenter[]     @relation("CenterCreatedBy")
+  registrations     Registration[]    @relation("RegisteredBy")
+  participations    RegistrationParticipation[] @relation("AssignedBy")
+  groupAssignments  GroupAssignment[] @relation("AssignedBy")
+  attendanceVerifications AttendanceRecord[] @relation("VerifiedBy")
+  attendanceCorrections AttendanceCorrection[] @relation("CorrectedBy")
+  centerAdmins      CenterAdmin[]
+  sentInvites       Invite[]          // Added back-relation
+  
+  // HRBAC: Admin manages other admins' role assignments
+  managedAssignments RoleAssignment[] @relation("AdminManagesAssignment")
 
   @@index([phoneNumber])
   @@index([email])
 }
 
 model AuthSession {
-  id        String    @id @default(cuid())
-  userId    String
-  token     String    @unique
-  expiresAt DateTime
-  revoked   Boolean   @default(false)
-  revokedAt DateTime?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime  @default(now())
-  user      AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  userId            String
+  user              AuthUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token             String            @unique
+  expiresAt         DateTime
+  revoked           Boolean           @default(false)
+  revokedAt         DateTime?
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime          @default(now())
 
   @@index([userId])
   @@index([token])
 }
 
 model OTPToken {
-  id          String    @id @default(cuid())
-  userId      String?
-  code        String
-  purpose     String
-  expiresAt   DateTime
-  usedAt      DateTime?
-  attempts    Int       @default(0)
-  createdAt   DateTime  @default(now())
-  email       String?
-  phoneNumber String?
-  user        AuthUser? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  userId            String?
+  user              AuthUser?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phoneNumber       String?
+  email             String?
+  code              String
+  purpose           String            // "email_verification" | "phone_verification" | "password_reset"
+  expiresAt         DateTime
+  usedAt            DateTime?
+  attempts          Int               @default(0)
+  createdAt         DateTime          @default(now())
 
   @@index([userId])
   @@index([phoneNumber])
@@ -76,77 +86,86 @@ model OTPToken {
 }
 
 model PasswordReset {
-  id        String    @id @default(cuid())
-  userId    String
-  token     String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-  user      AuthUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  userId            String
+  user              AuthUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token             String            @unique
+  expiresAt         DateTime
+  usedAt            DateTime?
+  createdAt         DateTime          @default(now())
 
   @@index([userId])
   @@index([token])
 }
 
+// ============================================================
+// MODULE 2: MEMBER IDENTITY
+// ============================================================
+
 model Member {
-  id                     String             @id @default(cuid())
-  fcsCode                String             @unique
-  authUserId             String?
-  firstName              String
-  lastName               String
-  email                  String?
-  phoneNumber            String?
-  dateOfBirth            DateTime?
-  gender                 String?
-  maritalStatus          String?
-  occupation             String?
-  state                  String?
-  profilePhotoUrl        String?
-  isActive               Boolean            @default(true)
-  joinedAt               DateTime           @default(now())
-  createdAt              DateTime           @default(now())
-  updatedAt              DateTime           @updatedAt
-  branch                 String?
-  zone                   String?
-  ageBracket             String?
-  branchId               String?
-  consentTimestamp       DateTime?
-  consentVersion         String?
-  course                 String?
-  department             String?
-  emergencyContactName   String?
-  emergencyContactPhone  String?
-  graduationYear         Int?
-  guardianEmail          String?
-  guardianName           String?
-  guardianPhone          String?
-  guardianRelationship   String?
-  institutionName        String?
-  institutionType        String?
-  isMinor                Boolean            @default(false)
-  level                  String?
-  membershipCategory     String?
-  otherNames             String?
-  placeOfWork            String?
-  preferredContactMethod String?
-  preferredName          String?
-  privacyPolicyAccepted  Boolean            @default(false)
-  signupSource           String             @default("WEB")
-  street                 String?
-  termsAccepted          Boolean            @default(false)
-  whatsappNumber         String?
-  yearJoined             Int?
-  attendances            AttendanceRecord[]
-  createdAuditLogs       AuditLog[]         @relation("AuditMember")
-  badges                 Badge[]
-  groupAssignments       GroupAssignment[]
-  guardianOf             Guardian[]         @relation("IsGuardianOf")
-  guardians              Guardian[]         @relation("GuardedBy")
-  authUser               AuthUser?          @relation(fields: [authUserId], references: [id])
-  unit                   Unit?              @relation("MemberBranch", fields: [branchId], references: [id])
-  notifications          Notification[]
-  registrations          Registration[]
-  roleAssignments        RoleAssignment[]
+  id                String            @id @default(cuid())
+  fcsCode           String            @unique // Immutable FCS Member Code
+  authUserId        String?
+  authUser          AuthUser?         @relation(fields: [authUserId], references: [id], onDelete: SetNull)
+  firstName         String
+  lastName          String
+  otherNames        String?           // New: Middle / additional
+  preferredName     String?           // New: Display name
+  email             String?
+  phoneNumber       String?
+  whatsappNumber    String?           // New: If different
+  dateOfBirth       DateTime?
+  gender            String?           // "MALE" | "FEMALE" | "OTHER"
+  maritalStatus     String?           // Added maritalStatus
+   street            String?           // New: Address
+  department        String?           // New: Staff Department/Unit
+  occupation        String?           // Added occupation
+  placeOfWork       String?           // New: Organization
+  institutionName   String?           // New: School / University
+  institutionType   String?           // New: PRIMARY | SECONDARY | TERTIARY
+  level             String?           // New: Class / Level
+  course            String?           // New: Tertiary only
+  graduationYear    Int?              // New: Tertiary only
+  membershipCategory String?          // New: PRIMARY | SECONDARY | TERTIARY | ASSOCIATE | STAFF | ALUMNI
+  yearJoined        Int?              // New: Historical data
+  state             String?
+  zone              String?           // Text-based Zone/Area
+  branch            String?           // Text-based Branch
+  branchId          String?           // New: Primary FCS unit linkage
+  unit              Unit?             @relation("MemberBranch", fields: [branchId], references: [id])
+  preferredContactMethod String?     // New: SMS | EMAIL | WHATSAPP
+  emergencyContactName   String?     // New: Safety
+  emergencyContactPhone  String?     // New: Safety
+  ageBracket        String?           // New: Required if DOB not provided
+  isMinor           Boolean           @default(false) // New: Derived
+  signupSource      String            @default("WEB") // New: WEB | ADMIN | IMPORT
+  profilePhotoUrl   String?
+  isActive          Boolean           @default(true)
+  joinedAt          DateTime          @default(now())
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  // Guardian Info (for minors)
+  guardianName      String?
+  guardianPhone     String?
+  guardianEmail     String?
+  guardianRelationship String?
+
+  // Compliance
+  privacyPolicyAccepted Boolean       @default(false)
+  termsAccepted         Boolean       @default(false)
+  consentVersion        String?
+  consentTimestamp      DateTime?
+
+  guardians         Guardian[]        @relation("GuardedBy")
+  guardianOf        Guardian[]        @relation("IsGuardianOf")
+  registrations     Registration[]
+  attendances       AttendanceRecord[]
+  groupAssignments  GroupAssignment[]
+  badges            Badge[]
+  roleAssignments   RoleAssignment[]
+  createdAuditLogs  AuditLog[]        @relation("AuditMember")
+  notifications     Notification[]
 
   @@index([fcsCode])
   @@index([authUserId])
@@ -156,49 +175,55 @@ model Member {
 }
 
 model Guardian {
-  id           String   @id @default(cuid())
-  memberId     String
-  guardianId   String
-  relationship String
-  createdAt    DateTime @default(now())
-  guardian     Member   @relation("IsGuardianOf", fields: [guardianId], references: [id], onDelete: Cascade)
-  member       Member   @relation("GuardedBy", fields: [memberId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  memberId          String
+  member            Member            @relation("GuardedBy", fields: [memberId], references: [id], onDelete: Cascade)
+  guardianId        String
+  guardian          Member            @relation("IsGuardianOf", fields: [guardianId], references: [id], onDelete: Cascade)
+  relationship      String            // "PARENT" | "GUARDIAN" | "SPONSOR"
+  createdAt         DateTime          @default(now())
 
   @@unique([memberId, guardianId])
   @@index([memberId])
   @@index([guardianId])
 }
 
+// ============================================================
+// MODULE 3: ORGANIZATIONAL UNIT
+// ============================================================
+
 model UnitType {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  level       Int      @unique
-  description String?
-  createdAt   DateTime @default(now())
-  units       Unit[]
+  id                String            @id @default(cuid())
+  name              String            @unique // "National HQ" | "Branch" | "Zone" | "State" | "Area" | "Region"
+  level             Int               @unique
+  description       String?
+  createdAt         DateTime          @default(now())
+
+  units             Unit[]
 }
 
 model Unit {
-  id              String           @id @default(cuid())
-  unitTypeId      String
-  name            String
-  code            String           @unique
-  description     String?
-  parentId        String?
-  isActive        Boolean          @default(true)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  auditLogs       AuditLog[]
-  events          Event[]
-  areaCenters     EventCenter[]    @relation("AreaCenters")
-  stateCenters    EventCenter[]    @relation("StateCenters")
-  zoneCenters     EventCenter[]    @relation("ZoneCenters")
-  invites         Invite[]
-  members         Member[]         @relation("MemberBranch")
-  roleAssignments RoleAssignment[]
-  parent          Unit?            @relation("UnitHierarchy", fields: [parentId], references: [id])
-  children        Unit[]           @relation("UnitHierarchy")
-  unitType        UnitType         @relation(fields: [unitTypeId], references: [id])
+  id                String            @id @default(cuid())
+  unitTypeId        String
+  unitType          UnitType          @relation(fields: [unitTypeId], references: [id])
+  name              String
+  code              String            @unique
+  description       String?
+  parentId          String?
+  parent            Unit?             @relation("UnitHierarchy", fields: [parentId], references: [id])
+  children          Unit[]            @relation("UnitHierarchy")
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  events            Event[]
+  stateCenters      EventCenter[]     @relation("StateCenters")
+  areaCenters       EventCenter[]     @relation("AreaCenters")
+  zoneCenters       EventCenter[]     @relation("ZoneCenters")
+  roleAssignments   RoleAssignment[]
+  auditLogs         AuditLog[]
+  invites           Invite[]          // Added back-relation
+  members           Member[]          @relation("MemberBranch")
 
   @@unique([unitTypeId, name, parentId])
   @@index([unitTypeId])
@@ -206,42 +231,50 @@ model Unit {
   @@index([code])
 }
 
+// ============================================================
+// MODULE 4: ROLES & PERMISSIONS
+// ============================================================
+
 model Role {
-  id              String           @id @default(cuid())
-  name            String           @unique
-  description     String?
-  isSystem        Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  invites         Invite[]
-  roleAssignments RoleAssignment[]
-  permissions     Permission[]     @relation("PermissionToRole")
+  id                String            @id @default(cuid())
+  name              String            @unique // "Admin" | "Manager" | "Staff" | "Member"
+  description       String?
+  isSystem          Boolean           @default(false) // System roles cannot be deleted
+  createdAt         DateTime          @default(now())
+
+  permissions       Permission[]
+  roleAssignments   RoleAssignment[]
+  invites           Invite[]          // Added back-relation
 }
 
 model Permission {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  module      String
-  action      String
-  createdAt   DateTime @default(now())
-  roles       Role[]   @relation("PermissionToRole")
+  id                String            @id @default(cuid())
+  name              String            @unique
+  description       String?
+  module            String            // "auth" | "members" | "events" | "attendance" | "reports"
+  action            String            // "create" | "read" | "update" | "delete" | "export"
+  createdAt         DateTime          @default(now())
+
+  roles             Role[]
 }
 
 model RoleAssignment {
-  id             String    @id @default(cuid())
-  memberId       String
-  roleId         String
-  unitId         String?
-  assignedBy     String
-  assignedAt     DateTime  @default(now())
-  expiresAt      DateTime?
-  createdAt      DateTime  @default(now())
-  managedBy      String?
-  assignedByUser AuthUser  @relation(fields: [assignedBy], references: [id])
-  managedByUser  AuthUser? @relation("AdminManagesAssignment", fields: [managedBy], references: [id])
-  member         Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  role           Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  unit           Unit?     @relation(fields: [unitId], references: [id])
+  id                String            @id @default(cuid())
+  memberId          String
+  member            Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  roleId            String
+  role              Role              @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  unitId            String?
+  unit              Unit?             @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  assignedBy        String
+  assignedByUser    AuthUser          @relation(fields: [assignedBy], references: [id])
+  assignedAt        DateTime          @default(now())
+  expiresAt         DateTime?
+  createdAt         DateTime          @default(now())
+
+  // HRBAC: Admin-to-Admin hierarchy
+  managedBy         String?           // Parent admin who manages this assignment
+  managedByUser     AuthUser?         @relation("AdminManagesAssignment", fields: [managedBy], references: [id], onDelete: SetNull)
 
   @@unique([memberId, roleId, unitId])
   @@index([memberId])
@@ -250,32 +283,37 @@ model RoleAssignment {
   @@index([managedBy])
 }
 
+// ============================================================
+// MODULE 5: EVENT MANAGEMENT
+// ============================================================
+
 model Event {
-  id                   String                @id @default(cuid())
-  title                String
-  description          String?
-  unitId               String
-  startDate            DateTime
-  endDate              DateTime
-  registrationStart    DateTime
-  registrationEnd      DateTime
-  participationMode    String
-  isPublished          Boolean               @default(true)
-  createdBy            String
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  imageUrl             String?
-  attendances          AttendanceRecord[]
-  auditLogs            AuditLog[]
-  badges               Badge[]
-  createdByUser        AuthUser              @relation("EventCreatedBy", fields: [createdBy], references: [id])
-  unit                 Unit                  @relation(fields: [unitId], references: [id])
-  centers              EventCenter[]
-  groups               EventGroup[]
-  settings             EventSetting?
-  notifications        Notification[]
+  id                String            @id @default(cuid())
+  title             String
+  description       String?
+  unitId            String
+  unit              Unit              @relation(fields: [unitId], references: [id])
+  startDate         DateTime
+  endDate           DateTime
+  registrationStart DateTime
+  registrationEnd   DateTime
+  participationMode String            // "ONLINE" | "ONSITE" | "HYBRID"
+  isPublished       Boolean           @default(true)
+  imageUrl          String?
+  createdBy         String
+  createdByUser     AuthUser          @relation("EventCreatedBy", fields: [createdBy], references: [id])
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  settings          EventSetting?
+  registrations     Registration[]
+  centers           EventCenter[]
+  groups            EventGroup[]
+  attendances       AttendanceRecord[]
+  badges            Badge[]
+  notifications     Notification[]
   notificationTriggers NotificationTrigger[]
-  registrations        Registration[]
+  auditLogs         AuditLog[]
 
   @@index([unitId])
   @@index([participationMode])
@@ -283,39 +321,44 @@ model Event {
 }
 
 model EventSetting {
-  id                          String   @id @default(cuid())
-  eventId                     String   @unique
-  requireGroupAssignment      Boolean  @default(false)
-  allowSelfRegistration       Boolean  @default(true)
-  allowThirdPartyRegistration Boolean  @default(true)
-  requireParentalConsent      Boolean  @default(false)
-  groupAssignmentMethod       String?
-  updatedAt                   DateTime @updatedAt
-  event                       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  eventId           String            @unique
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  requireGroupAssignment Boolean       @default(false)
+  allowSelfRegistration Boolean       @default(true)
+  allowThirdPartyRegistration Boolean @default(true)
+  requireParentalConsent Boolean       @default(false)
+  groupAssignmentMethod String?       // "MANUAL" | "AUTOMATIC" | "OPTIONAL"
+  updatedAt         DateTime          @updatedAt
 }
 
+// ============================================================
+// MODULE 6: EVENT PARTICIPATION CENTERS (NEW – CORE)
+// ============================================================
+
 model EventCenter {
-  id             String                      @id @default(cuid())
-  eventId        String
-  centerName     String
-  country        String                      @default("Nigeria")
-  stateId        String?
-  areaId         String?
-  zoneId         String?
-  address        String
-  isActive       Boolean                     @default(true)
-  createdBy      String
-  createdAt      DateTime                    @default(now())
-  updatedAt      DateTime                    @updatedAt
-  attendances    AttendanceRecord[]
-  admins         CenterAdmin[]
-  area           Unit?                       @relation("AreaCenters", fields: [areaId], references: [id])
-  createdByUser  AuthUser                    @relation("CenterCreatedBy", fields: [createdBy], references: [id])
-  event          Event                       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  state          Unit?                       @relation("StateCenters", fields: [stateId], references: [id])
-  zone           Unit?                       @relation("ZoneCenters", fields: [zoneId], references: [id])
-  registrations  Registration[]              @relation("RegisteredCenter")
-  participations RegistrationParticipation[]
+  id                String            @id @default(cuid())
+  eventId           String
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  centerName        String
+  country           String            @default("Nigeria")
+  stateId           String?
+  state             Unit?             @relation("StateCenters", fields: [stateId], references: [id])
+  areaId            String?
+  area              Unit?             @relation("AreaCenters", fields: [areaId], references: [id])
+  zoneId            String?
+  zone              Unit?             @relation("ZoneCenters", fields: [zoneId], references: [id])
+  address           String
+  isActive          Boolean           @default(true)
+  createdBy         String
+  createdByUser     AuthUser          @relation("CenterCreatedBy", fields: [createdBy], references: [id])
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  admins            CenterAdmin[]
+  registrations     Registration[]    @relation("RegisteredCenter")
+  attendances       AttendanceRecord[]
+  participations    RegistrationParticipation[]
 
   @@index([eventId])
   @@index([stateId])
@@ -324,39 +367,45 @@ model EventCenter {
 }
 
 model CenterAdmin {
-  id         String      @id @default(cuid())
-  centerId   String
-  userId     String
-  role       String      @default("CENTER_ADMIN")
-  assignedAt DateTime    @default(now())
-  center     EventCenter @relation(fields: [centerId], references: [id], onDelete: Cascade)
-  user       AuthUser    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  centerId          String
+  center            EventCenter       @relation(fields: [centerId], references: [id], onDelete: Cascade)
+  userId            String
+  user              AuthUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role              String            @default("CENTER_ADMIN")
+  assignedAt        DateTime          @default(now())
 
   @@unique([centerId, userId])
   @@index([centerId])
 }
 
+// ============================================================
+// MODULE 7: REGISTRATION (UPDATED)
+// ============================================================
+
 model Registration {
-  id                 String                     @id @default(cuid())
-  eventId            String
-  memberId           String
-  centerId           String?
-  registeredBy       String
-  registrationDate   DateTime                   @default(now())
-  status             String                     @default("CONFIRMED")
+  id                String            @id @default(cuid())
+  eventId           String
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  memberId          String
+  member            Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  centerId          String?
+  center            EventCenter?      @relation("RegisteredCenter", fields: [centerId], references: [id], onDelete: SetNull)
+  registeredBy      String
+  registeredByUser  AuthUser          @relation("RegisteredBy", fields: [registeredBy], references: [id])
+  registrationDate  DateTime          @default(now())
+  attendanceIntent  String?           @default("CONFIRMED") // "CONFIRMED" | "TENTATIVE"
+  status            String            @default("CONFIRMED") // "PENDING" | "CONFIRMED" | "CANCELLED"
   cancellationReason String?
-  cancelledAt        DateTime?
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
-  attendanceIntent   String?                    @default("CONFIRMED")
-  attendance         AttendanceRecord?
-  auditLogs          AuditLog[]                 @relation("RegistrationAudit")
-  groupAssignments   GroupAssignment[]
-  center             EventCenter?               @relation("RegisteredCenter", fields: [centerId], references: [id])
-  event              Event                      @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  member             Member                     @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  registeredByUser   AuthUser                   @relation("RegisteredBy", fields: [registeredBy], references: [id])
-  participation      RegistrationParticipation?
+  cancelledAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  participation     RegistrationParticipation?
+  attendance        AttendanceRecord?
+  auditLogs         AuditLog[]        @relation("RegistrationAudit")
+
+  groupAssignments  GroupAssignment[] // Changed to plural and array
 
   @@unique([eventId, memberId])
   @@index([eventId])
@@ -366,77 +415,87 @@ model Registration {
 }
 
 model RegistrationParticipation {
-  id                String       @id @default(cuid())
-  registrationId    String       @unique
-  participationMode String
+  id                String            @id @default(cuid())
+  registrationId    String            @unique
+  registration      Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  participationMode String            // "ONLINE" | "ONSITE"
   centerId          String?
+  center            EventCenter?      @relation(fields: [centerId], references: [id], onDelete: SetNull)
   assignedBy        String
-  assignedAt        DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  assignedByUser    AuthUser     @relation("AssignedBy", fields: [assignedBy], references: [id])
-  center            EventCenter? @relation(fields: [centerId], references: [id])
-  registration      Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  assignedByUser    AuthUser          @relation("AssignedBy", fields: [assignedBy], references: [id])
+  assignedAt        DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([registrationId])
   @@index([centerId])
 }
 
+// ============================================================
+// MODULE 8: BIBLE STUDY & WORKSHOP GROUP
+// ============================================================
+
 model EventGroup {
-  id          String            @id @default(cuid())
-  eventId     String
-  name        String
-  description String?
-  type        String
-  isMandatory Boolean           @default(false)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  event       Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  assignments GroupAssignment[]
+  id                String            @id @default(cuid())
+  eventId           String
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name              String
+  description       String?
+  type              String            // "BIBLE_STUDY" | "WORKSHOP" | "SEMINAR"
+  isMandatory       Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  assignments       GroupAssignment[]
 
   @@unique([eventId, name])
   @@index([eventId])
 }
 
 model GroupAssignment {
-  id             String       @id @default(cuid())
-  groupId        String
-  registrationId String
-  memberId       String
-  assignedBy     String
-  assignedAt     DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  assignedByUser AuthUser     @relation("AssignedBy", fields: [assignedBy], references: [id])
-  group          EventGroup   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  member         Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  groupId           String
+  group             EventGroup        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  registrationId    String
+  registration      Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  memberId          String
+  member            Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  assignedBy        String
+  assignedByUser    AuthUser          @relation("AssignedBy", fields: [assignedBy], references: [id])
+  assignedAt        DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
-  @@unique([registrationId, groupId])
   @@index([groupId])
   @@index([registrationId])
   @@index([memberId])
+  @@unique([registrationId, groupId])
 }
 
+// ============================================================
+// MODULE 9: ATTENDANCE (HIGH-THROUGHPUT)
+// ============================================================
+
 model AttendanceRecord {
-  id                String                 @id @default(cuid())
+  id                String            @id @default(cuid())
   eventId           String
-  registrationId    String                 @unique
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registrationId    String            @unique
+  registration      Registration      @relation(fields: [registrationId], references: [id], onDelete: Cascade)
   memberId          String
+  member            Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
   centerId          String?
-  participationMode String
-  checkInMethod     String
+  center            EventCenter?      @relation(fields: [centerId], references: [id])
+  participationMode String            // "ONLINE" | "ONSITE"
+  checkInMethod     String            // "QR" | "SAC" | "MANUAL" | "KIOSK"
   checkInTime       DateTime
   checkOutTime      DateTime?
   verifiedBy        String?
-  isVerified        Boolean                @default(false)
+  verifiedByUser    AuthUser?         @relation("VerifiedBy", fields: [verifiedBy], references: [id])
+  isVerified        Boolean           @default(false)
   notes             String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
   corrections       AttendanceCorrection[]
-  center            EventCenter?           @relation(fields: [centerId], references: [id])
-  event             Event                  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  member            Member                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  registration      Registration           @relation(fields: [registrationId], references: [id], onDelete: Cascade)
-  verifiedByUser    AuthUser?              @relation("VerifiedBy", fields: [verifiedBy], references: [id])
 
   @@index([eventId])
   @@index([registrationId])
@@ -446,66 +505,74 @@ model AttendanceRecord {
 }
 
 model AttendanceCorrection {
-  id              String           @id @default(cuid())
-  attendanceId    String
-  correctionType  String
-  oldValue        String
-  newValue        String
-  reason          String
-  correctedBy     String
-  correctedAt     DateTime         @default(now())
-  attendance      AttendanceRecord @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  correctedByUser AuthUser         @relation("CorrectedBy", fields: [correctedBy], references: [id])
+  id                String            @id @default(cuid())
+  attendanceId      String
+  attendance        AttendanceRecord  @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  correctionType    String            // "CHECK_IN_TIME" | "CHECK_OUT_TIME" | "PARTICIPATION_MODE" | "CENTER_CHANGE" | "STATUS"
+  oldValue          String
+  newValue          String
+  reason            String
+  correctedBy       String
+  correctedByUser   AuthUser          @relation("CorrectedBy", fields: [correctedBy], references: [id])
+  correctedAt       DateTime          @default(now())
 
   @@index([attendanceId])
 }
 
 model AttendanceCode {
-  id        String    @id @default(cuid())
-  code      String    @unique
-  codeType  String
-  eventId   String
-  expiresAt DateTime
-  isUsed    Boolean   @default(false)
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
+  id                String            @id @default(cuid())
+  code              String            @unique
+  codeType          String            // "QR" | "SAC"
+  eventId           String
+  expiresAt         DateTime
+  isUsed            Boolean           @default(false)
+  usedAt            DateTime?
+  createdAt         DateTime          @default(now())
 }
 
+// ============================================================
+// MODULE 10: BADGE & ASSET
+// ============================================================
+
 model Badge {
-  id                String   @id @default(cuid())
+  id                String            @id @default(cuid())
   eventId           String
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   memberId          String
-  badgeType         String
+  member            Member            @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  badgeType         String            // "CERTIFICATE" | "DIGITAL_BADGE" | "NAME_TAG"
   badgeUrl          String?
   participationMode String
   centerName        String?
-  issuedAt          DateTime @default(now())
-  createdAt         DateTime @default(now())
-  event             Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  member            Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  issuedAt          DateTime          @default(now())
+  createdAt         DateTime          @default(now())
 
   @@index([eventId])
   @@index([memberId])
 }
 
+// ============================================================
+// MODULE 11: NOTIFICATION
+// ============================================================
+
 model Notification {
-  id             String    @id @default(cuid())
-  eventId        String?
-  recipientEmail String
-  recipientPhone String?
-  subject        String
-  message        String
-  sentAt         DateTime?
-  deliveredAt    DateTime?
-  failureReason  String?
-  createdAt      DateTime  @default(now())
-  deliveryMethod String
-  recipientId    String?
-  status         String    @default("PENDING")
-  templateData   Json?
-  triggerType    String
-  event          Event?    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  member         Member?   @relation(fields: [recipientId], references: [id])
+  id                String            @id @default(cuid())
+  eventId           String?
+  event             Event?            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  recipientId       String?
+  member            Member?           @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+  recipientEmail    String
+  recipientPhone    String?
+  subject           String
+  message           String
+  triggerType       String            // "REGISTRATION" | "GROUP_ASSIGNMENT" | "CENTER_ASSIGNMENT" | "EVENT_UPDATE" | "REMINDER" | "GENERAL"
+  deliveryMethod    String            // "EMAIL" | "SMS" | "WHATSAPP" | "PUSH"
+  templateData      Json?
+  status            String            @default("PENDING") // "PENDING" | "SENT" | "DELIVERED" | "FAILED"
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  failureReason     String?
+  createdAt         DateTime          @default(now())
 
   @@index([eventId])
   @@index([recipientId])
@@ -513,95 +580,113 @@ model Notification {
 }
 
 model NotificationTrigger {
-  id             String   @id @default(cuid())
-  eventId        String
-  triggerType    String
-  deliveryMethod String
-  templateId     String?
-  recipientType  String
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id                String            @id @default(cuid())
+  eventId           String
+  event             Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  triggerType       String            // "REGISTRATION" | "GROUP_ASSIGNMENT" | "CENTER_ASSIGNMENT" | "EVENT_REMINDER"
+  deliveryMethod    String            // "EMAIL" | "SMS" | "PUSH"
+  templateId        String?
+  recipientType     String            // "MEMBER" | "PARENT" | "ADMIN"
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([eventId])
   @@index([triggerType])
 }
 
+// ============================================================
+// MODULE 12: REPORTING & ANALYTICS
+// ============================================================
+
 model ReportingView {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  queryName   String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String            @id @default(cuid())
+  name              String            @unique
+  description       String?
+  queryName         String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 model AnalyticsSnapshot {
-  id                 String   @id @default(cuid())
-  eventId            String
-  snapshotDate       DateTime
+  id                String            @id @default(cuid())
+  eventId           String
+  snapshotDate      DateTime
   totalRegistrations Int
-  totalAttendance    Int
-  onlineAttendance   Int
-  onsiteAttendance   Int
-  attendanceRate     Float
-  createdAt          DateTime @default(now())
+  totalAttendance   Int
+  onlineAttendance  Int
+  onsiteAttendance  Int
+  attendanceRate    Float
+  createdAt         DateTime          @default(now())
 
   @@unique([eventId, snapshotDate])
   @@index([eventId])
 }
 
+// ============================================================
+// MODULE 13: AUDIT & GOVERNANCE
+// ============================================================
+
 model AuditLog {
-  id            String       @id @default(cuid())
-  entityType    String
-  entityId      String
-  eventId       String?
-  memberId      String?
-  unitId        String?
-  action        String
-  changes       String
-  reason        String?
-  createdBy     String
-  ipAddress     String?
-  userAgent     String?
-  createdAt     DateTime     @default(now())
-  createdByUser AuthUser     @relation("CreatedBy", fields: [createdBy], references: [id])
-  registration  Registration @relation("RegistrationAudit", fields: [entityId], references: [id], onDelete: SetNull)
-  event         Event?       @relation(fields: [eventId], references: [id])
-  member        Member?      @relation("AuditMember", fields: [memberId], references: [id])
-  unit          Unit?        @relation(fields: [unitId], references: [id])
+  id                String            @id @default(cuid())
+  entityType        String            // "REGISTRATION" | "ATTENDANCE" | "MEMBER" | "EVENT" | "CENTER" | "GROUP"
+  entityId          String
+  eventId           String?
+  event             Event?            @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  memberId          String?
+  member            Member?           @relation("AuditMember", fields: [memberId], references: [id], onDelete: SetNull)
+  unitId            String?
+  unit              Unit?             @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  action            String            // "CREATE" | "UPDATE" | "DELETE" | "OVERRIDE" | "VERIFY"
+  changes           String            // JSON string of changes
+  reason            String?
+  createdBy         String
+  createdByUser     AuthUser          @relation("CreatedBy", fields: [createdBy], references: [id])
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime          @default(now())
 
   @@index([entityType])
   @@index([eventId])
   @@index([memberId])
   @@index([createdBy])
   @@index([createdAt])
+
+  // Additional relation for registration audits
+  registration      Registration?     @relation("RegistrationAudit", fields: [entityId], references: [id], onDelete: SetNull)
 }
+
+// ============================================================
+// UTILITY MODELS
+// ============================================================
 
 model SystemConfig {
-  id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  description String?
-  updatedAt   DateTime @updatedAt
+  id                String            @id @default(cuid())
+  key               String            @unique
+  value             String
+  description       String?
+  updatedAt         DateTime          @updatedAt
 }
 
+// ============================================================
+// MODULE 14: INVITATIONS (NEW)
+// ============================================================
+
 model Invite {
-  id            String    @id @default(cuid())
-  email         String
-  roleId        String
-  unitId        String?
-  invitedBy     String
-  token         String    @unique
-  expiresAt     DateTime
-  status        String    @default("PENDING")
-  acceptedAt    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  invitedByUser AuthUser  @relation(fields: [invitedBy], references: [id])
-  role          Role      @relation(fields: [roleId], references: [id])
-  unit          Unit?     @relation(fields: [unitId], references: [id])
+  id                String            @id @default(cuid())
+  email             String
+  roleId            String
+  role              Role              @relation(fields: [roleId], references: [id])
+  unitId            String?
+  unit              Unit?             @relation(fields: [unitId], references: [id])
+  invitedBy         String
+  invitedByUser     AuthUser          @relation(fields: [invitedBy], references: [id])
+  token             String            @unique
+  expiresAt         DateTime
+  status            String            @default("PENDING") // "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED"
+  acceptedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([email])
   @@index([token])

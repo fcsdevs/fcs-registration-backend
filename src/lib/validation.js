@@ -49,17 +49,17 @@ export const registerSchema = Joi.object({
   guardianRelationship: Joi.string().allow('', null).optional(),
   privacyPolicyAccepted: Joi.boolean().valid(true).required(),
   termsAccepted: Joi.boolean().valid(true).required(),
-});
+}).or('phoneNumber', 'email');
 
 export const loginSchema = Joi.object({
   identifier: Joi.string().required().messages({
-    'any.required': 'Email, Phone Number or FCS Code is required'
+    'any.required': 'Email or Phone Number is required'
   }),
   password: Joi.string().required(),
 });
 
 export const sendOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
     'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
   }),
   email: Joi.string().email().optional(),
@@ -67,7 +67,7 @@ export const sendOTPSchema = Joi.object({
 }).or('phoneNumber', 'email');
 
 export const verifyOTPSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
     'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
   }),
   email: Joi.string().email().optional(),
@@ -76,7 +76,7 @@ export const verifyOTPSchema = Joi.object({
 }).or('phoneNumber', 'email');
 
 export const resetPasswordSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
     'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
   }),
   email: Joi.string().email().optional(),
@@ -109,7 +109,7 @@ export const createMemberSchema = Joi.object({
   otherNames: Joi.string().allow('', null).optional(),
   preferredName: Joi.string().allow('', null).optional(),
   email: Joi.string().email().allow(null, '').optional(),
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
     'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
   }),
   whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
@@ -151,7 +151,7 @@ export const updateMemberSchema = Joi.object({
   otherNames: Joi.string().allow('', null).optional(),
   preferredName: Joi.string().allow('', null).optional(),
   email: Joi.string().email().allow(null, '').optional(),
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).optional().messages({
     'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
   }),
   whatsappNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
