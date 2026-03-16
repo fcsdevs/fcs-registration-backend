@@ -40,6 +40,8 @@ services:
       - redis
     networks:
       - fcs-network
+    volumes:
+      - ./backups:/app/backups
     restart: unless-stopped
 
 volumes:
