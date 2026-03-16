@@ -17,7 +17,7 @@ datasource db {
 
 model AuthUser {
   id                String            @id @default(cuid())
-  phoneNumber       String            @unique
+  phoneNumber       String?           @unique
   email             String?           @unique
   passwordHash      String
   isActive          Boolean           @default(true)

@@ -65,7 +65,7 @@ export const registerUser = async (data) => {
   // Create auth user
   const authUser = await prisma.authUser.create({
     data: {
-      phoneNumber: normalizedPhone,
+      phoneNumber: normalizedPhone || null,
       email: email || null,
       passwordHash,
       emailVerified: true,

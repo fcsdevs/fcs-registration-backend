@@ -5,7 +5,7 @@ import Joi from 'joi';
 // ============================================================
 
 export const registerSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).required().messages({
+  phoneNumber: Joi.string().pattern(/^(\+?234|0)\d{10}$/).allow('', null).optional().messages({
     'string.pattern.base': 'Phone number must be a valid Nigerian number (e.g., 08135873345 or +2348135873345)'
   }),
   email: Joi.string().email().allow('', null).optional(),
@@ -49,7 +49,7 @@ export const registerSchema = Joi.object({
   guardianRelationship: Joi.string().allow('', null).optional(),
   privacyPolicyAccepted: Joi.boolean().valid(true).required(),
   termsAccepted: Joi.boolean().valid(true).required(),
-});
+}).or('phoneNumber', 'email');
 
 export const loginSchema = Joi.object({
   identifier: Joi.string().required().messages({
