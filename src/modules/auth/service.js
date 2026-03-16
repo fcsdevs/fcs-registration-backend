@@ -32,19 +32,23 @@ export const registerUser = async (data) => {
   } = data;
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
-  // Check if user already exists
-  const existingUser = await prisma.authUser.findFirst({
-    where: {
-      OR: [
-        { phoneNumber: normalizedPhone },
-        email ? { email } : undefined
-      ].filter(Boolean)
-    },
-  });
+  // 1. Uniqueness of Identity (for users with phone/email)
+  const searchTerms = [];
+  if (normalizedPhone) searchTerms.push({ phoneNumber: normalizedPhone });
+  if (email) searchTerms.push({ email: { equals: email, mode: 'insensitive' } });
 
-  if (existingUser) {
-    if (existingUser.phoneNumber === normalizedPhone) {
-      throw new ValidationError('User with this phone number already exists');
+  if (searchTerms.length > 0) {
+    const existingUser = await prisma.authUser.findFirst({
+      where: { OR: searchTerms },
+    });
+
+    if (existingUser) {
+      if (normalizedPhone && existingUser.phoneNumber === normalizedPhone) {
+        throw new ValidationError('User with this phone number already exists');
+      }
+      if (email && existingUser.email?.toLowerCase() === email.toLowerCase()) {
+        throw new ValidationError('User with this email address already exists');
+      }
     }
   }
 
@@ -190,7 +194,7 @@ export const checkUserExistence = async ({ email, phoneNumber }) => {
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
   
   const searchTerms = [];
-  if (email) searchTerms.push({ email });
+  if (email) searchTerms.push({ email: { equals: email, mode: 'insensitive' } });
   if (normalizedPhone) searchTerms.push({ phoneNumber: normalizedPhone });
 
   if (searchTerms.length === 0) {
@@ -238,16 +242,21 @@ export const checkUserExistence = async ({ email, phoneNumber }) => {
  * Login user with email/phone and password
  */
 export const loginUser = async (identifier, password) => {
+  if (!identifier) {
+    throw new ValidationError('Email or phone number is required');
+  }
+
   // Normalize if it looks like a phone number
   const normalizedPhone = normalizePhoneNumber(identifier);
+  const isEmail = identifier.includes('@');
 
   // Find user by email or phone
   const authUser = await prisma.authUser.findFirst({
     where: {
       OR: [
-        { email: identifier },
-        { phoneNumber: normalizedPhone }
-      ]
+        { email: { equals: identifier, mode: 'insensitive' } },
+        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined
+      ].filter(Boolean)
     },
   });
 
