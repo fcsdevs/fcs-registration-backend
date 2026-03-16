@@ -33,22 +33,40 @@ export const registerUser = async (data) => {
   } = data;
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
 
-  // Check if user already exists
-  const existingUser = await prisma.authUser.findFirst({
-    where: {
-      OR: [
-        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
-        email ? { email } : undefined
-      ].filter(Boolean)
-    },
-  });
+  // 1. Check uniqueness of identifiers (Phone/Email) if provided
+  const identifierFilters = [];
+  if (normalizedPhone) identifierFilters.push({ phoneNumber: normalizedPhone });
+  if (email) identifierFilters.push({ email });
 
-  if (existingUser) {
-    if (normalizedPhone && existingUser.phoneNumber === normalizedPhone) {
-      throw new ValidationError('User with this phone number already exists');
+  if (identifierFilters.length > 0) {
+    const existingUser = await prisma.authUser.findFirst({
+      where: { OR: identifierFilters },
+    });
+
+    if (existingUser) {
+      if (normalizedPhone && existingUser.phoneNumber === normalizedPhone) {
+        throw new ValidationError('User with this phone number already exists');
+      }
+      if (email && existingUser.email === email) {
+        throw new ValidationError('User with this email already exists');
+      }
     }
-    if (email && existingUser.email === email) {
-      throw new ValidationError('User with this email already exists');
+  }
+
+  // 2. Uniqueness of Detail (Fallback for users without identifiers, e.g., children)
+  // Check if a member with same firstName, lastName AND dateOfBirth already exists
+  if (firstName && lastName && dateOfBirth) {
+    const existingMember = await prisma.member.findFirst({
+      where: {
+        firstName: { equals: firstName, mode: 'insensitive' },
+        lastName: { equals: lastName, mode: 'insensitive' },
+        dateOfBirth: new Date(dateOfBirth),
+        isActive: true
+      }
+    });
+
+    if (existingMember) {
+      throw new ValidationError('A member with this name and date of birth is already registered');
     }
   }
 
@@ -181,16 +199,21 @@ export const registerUser = async (data) => {
  */
 export const checkUserExistence = async ({ email, phoneNumber }) => {
   const normalizedPhone = normalizePhoneNumber(phoneNumber);
-  const where = {};
-  if (email) where.email = email;
-  if (normalizedPhone) where.phoneNumber = normalizedPhone;
+  
+  const searchTerms = [];
+  if (email) searchTerms.push({ email });
+  if (normalizedPhone) searchTerms.push({ phoneNumber: normalizedPhone });
+
+  if (searchTerms.length === 0) {
+    return {
+      exists: false,
+      message: 'No identifiers provided',
+    };
+  }
 
   const existingUser = await prisma.authUser.findFirst({
     where: {
-      OR: [
-        email ? { email } : undefined,
-        normalizedPhone ? { phoneNumber: normalizedPhone } : undefined,
-      ].filter(Boolean),
+      OR: searchTerms,
     },
     select: {
       id: true,
