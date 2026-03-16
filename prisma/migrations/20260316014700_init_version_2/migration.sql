@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "AuthUser" (
     "id" TEXT NOT NULL,
-    "phoneNumber" TEXT NOT NULL,
+    "phoneNumber" TEXT,
     "email" TEXT,
     "passwordHash" TEXT NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
@@ -32,13 +32,15 @@ CREATE TABLE "AuthSession" (
 -- CreateTable
 CREATE TABLE "OTPToken" (
     "id" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "userId" TEXT,
     "code" TEXT NOT NULL,
     "purpose" TEXT NOT NULL,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "usedAt" TIMESTAMP(3),
     "attempts" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "email" TEXT,
+    "phoneNumber" TEXT,
 
     CONSTRAINT "OTPToken_pkey" PRIMARY KEY ("id")
 );
@@ -74,6 +76,36 @@ CREATE TABLE "Member" (
     "joinedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "branch" TEXT,
+    "zone" TEXT,
+    "ageBracket" TEXT,
+    "branchId" TEXT,
+    "consentTimestamp" TIMESTAMP(3),
+    "consentVersion" TEXT,
+    "course" TEXT,
+    "department" TEXT,
+    "emergencyContactName" TEXT,
+    "emergencyContactPhone" TEXT,
+    "graduationYear" INTEGER,
+    "guardianEmail" TEXT,
+    "guardianName" TEXT,
+    "guardianPhone" TEXT,
+    "guardianRelationship" TEXT,
+    "institutionName" TEXT,
+    "institutionType" TEXT,
+    "isMinor" BOOLEAN NOT NULL DEFAULT false,
+    "level" TEXT,
+    "membershipCategory" TEXT,
+    "otherNames" TEXT,
+    "placeOfWork" TEXT,
+    "preferredContactMethod" TEXT,
+    "preferredName" TEXT,
+    "privacyPolicyAccepted" BOOLEAN NOT NULL DEFAULT false,
+    "signupSource" TEXT NOT NULL DEFAULT 'WEB',
+    "street" TEXT,
+    "termsAccepted" BOOLEAN NOT NULL DEFAULT false,
+    "whatsappNumber" TEXT,
+    "yearJoined" INTEGER,
 
     CONSTRAINT "Member_pkey" PRIMARY KEY ("id")
 );
@@ -148,6 +180,7 @@ CREATE TABLE "RoleAssignment" (
     "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "expiresAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "managedBy" TEXT,
 
     CONSTRAINT "RoleAssignment_pkey" PRIMARY KEY ("id")
 );
@@ -163,11 +196,11 @@ CREATE TABLE "Event" (
     "registrationStart" TIMESTAMP(3) NOT NULL,
     "registrationEnd" TIMESTAMP(3) NOT NULL,
     "participationMode" TEXT NOT NULL,
-    "isPublished" BOOLEAN NOT NULL DEFAULT false,
-    "capacity" INTEGER,
+    "isPublished" BOOLEAN NOT NULL DEFAULT true,
     "createdBy" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "imageUrl" TEXT,
 
     CONSTRAINT "Event_pkey" PRIMARY KEY ("id")
 );
@@ -196,7 +229,6 @@ CREATE TABLE "EventCenter" (
     "areaId" TEXT,
     "zoneId" TEXT,
     "address" TEXT NOT NULL,
-    "capacity" INTEGER,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdBy" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -229,6 +261,7 @@ CREATE TABLE "Registration" (
     "cancelledAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "attendanceIntent" TEXT DEFAULT 'CONFIRMED',
 
     CONSTRAINT "Registration_pkey" PRIMARY KEY ("id")
 );
@@ -253,7 +286,6 @@ CREATE TABLE "EventGroup" (
     "name" TEXT NOT NULL,
     "description" TEXT,
     "type" TEXT NOT NULL,
-    "capacity" INTEGER,
     "isMandatory" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -340,19 +372,37 @@ CREATE TABLE "Badge" (
 -- CreateTable
 CREATE TABLE "Notification" (
     "id" TEXT NOT NULL,
-    "eventId" TEXT NOT NULL,
+    "eventId" TEXT,
     "recipientEmail" TEXT NOT NULL,
     "recipientPhone" TEXT,
     "subject" TEXT NOT NULL,
     "message" TEXT NOT NULL,
-    "notificationType" TEXT NOT NULL,
-    "channel" TEXT NOT NULL,
     "sentAt" TIMESTAMP(3),
     "deliveredAt" TIMESTAMP(3),
     "failureReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deliveryMethod" TEXT NOT NULL,
+    "recipientId" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "templateData" JSONB,
+    "triggerType" TEXT NOT NULL,
 
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "NotificationTrigger" (
+    "id" TEXT NOT NULL,
+    "eventId" TEXT NOT NULL,
+    "triggerType" TEXT NOT NULL,
+    "deliveryMethod" TEXT NOT NULL,
+    "templateId" TEXT,
+    "recipientType" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "NotificationTrigger_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -377,7 +427,6 @@ CREATE TABLE "AnalyticsSnapshot" (
     "onlineAttendance" INTEGER NOT NULL,
     "onsiteAttendance" INTEGER NOT NULL,
     "attendanceRate" DOUBLE PRECISION NOT NULL,
-    "capacityUtilization" DOUBLE PRECISION,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "AnalyticsSnapshot_pkey" PRIMARY KEY ("id")
@@ -414,6 +463,23 @@ CREATE TABLE "SystemConfig" (
 );
 
 -- CreateTable
+CREATE TABLE "Invite" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "roleId" TEXT NOT NULL,
+    "unitId" TEXT,
+    "invitedBy" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "acceptedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Invite_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "_PermissionToRole" (
     "A" TEXT NOT NULL,
     "B" TEXT NOT NULL
@@ -444,6 +510,12 @@ CREATE INDEX "AuthSession_token_idx" ON "AuthSession"("token");
 CREATE INDEX "OTPToken_userId_idx" ON "OTPToken"("userId");
 
 -- CreateIndex
+CREATE INDEX "OTPToken_phoneNumber_idx" ON "OTPToken"("phoneNumber");
+
+-- CreateIndex
+CREATE INDEX "OTPToken_email_idx" ON "OTPToken"("email");
+
+-- CreateIndex
 CREATE INDEX "OTPToken_code_idx" ON "OTPToken"("code");
 
 -- CreateIndex
@@ -469,6 +541,9 @@ CREATE INDEX "Member_phoneNumber_idx" ON "Member"("phoneNumber");
 
 -- CreateIndex
 CREATE INDEX "Member_email_idx" ON "Member"("email");
+
+-- CreateIndex
+CREATE INDEX "Member_branchId_idx" ON "Member"("branchId");
 
 -- CreateIndex
 CREATE INDEX "Guardian_memberId_idx" ON "Guardian"("memberId");
@@ -516,6 +591,9 @@ CREATE INDEX "RoleAssignment_roleId_idx" ON "RoleAssignment"("roleId");
 CREATE INDEX "RoleAssignment_unitId_idx" ON "RoleAssignment"("unitId");
 
 -- CreateIndex
+CREATE INDEX "RoleAssignment_managedBy_idx" ON "RoleAssignment"("managedBy");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "RoleAssignment_memberId_roleId_unitId_key" ON "RoleAssignment"("memberId", "roleId", "unitId");
 
 -- CreateIndex
@@ -535,6 +613,12 @@ CREATE INDEX "EventCenter_eventId_idx" ON "EventCenter"("eventId");
 
 -- CreateIndex
 CREATE INDEX "EventCenter_stateId_idx" ON "EventCenter"("stateId");
+
+-- CreateIndex
+CREATE INDEX "EventCenter_areaId_idx" ON "EventCenter"("areaId");
+
+-- CreateIndex
+CREATE INDEX "EventCenter_zoneId_idx" ON "EventCenter"("zoneId");
 
 -- CreateIndex
 CREATE INDEX "CenterAdmin_centerId_idx" ON "CenterAdmin"("centerId");
@@ -573,9 +657,6 @@ CREATE INDEX "EventGroup_eventId_idx" ON "EventGroup"("eventId");
 CREATE UNIQUE INDEX "EventGroup_eventId_name_key" ON "EventGroup"("eventId", "name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "GroupAssignment_registrationId_key" ON "GroupAssignment"("registrationId");
-
--- CreateIndex
 CREATE INDEX "GroupAssignment_groupId_idx" ON "GroupAssignment"("groupId");
 
 -- CreateIndex
@@ -583,6 +664,9 @@ CREATE INDEX "GroupAssignment_registrationId_idx" ON "GroupAssignment"("registra
 
 -- CreateIndex
 CREATE INDEX "GroupAssignment_memberId_idx" ON "GroupAssignment"("memberId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "GroupAssignment_registrationId_groupId_key" ON "GroupAssignment"("registrationId", "groupId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "AttendanceRecord_registrationId_key" ON "AttendanceRecord"("registrationId");
@@ -618,7 +702,16 @@ CREATE INDEX "Badge_memberId_idx" ON "Badge"("memberId");
 CREATE INDEX "Notification_eventId_idx" ON "Notification"("eventId");
 
 -- CreateIndex
+CREATE INDEX "Notification_recipientId_idx" ON "Notification"("recipientId");
+
+-- CreateIndex
 CREATE INDEX "Notification_sentAt_idx" ON "Notification"("sentAt");
+
+-- CreateIndex
+CREATE INDEX "NotificationTrigger_eventId_idx" ON "NotificationTrigger"("eventId");
+
+-- CreateIndex
+CREATE INDEX "NotificationTrigger_triggerType_idx" ON "NotificationTrigger"("triggerType");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ReportingView_name_key" ON "ReportingView"("name");
@@ -648,6 +741,18 @@ CREATE INDEX "AuditLog_createdAt_idx" ON "AuditLog"("createdAt");
 CREATE UNIQUE INDEX "SystemConfig_key_key" ON "SystemConfig"("key");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Invite_token_key" ON "Invite"("token");
+
+-- CreateIndex
+CREATE INDEX "Invite_email_idx" ON "Invite"("email");
+
+-- CreateIndex
+CREATE INDEX "Invite_token_idx" ON "Invite"("token");
+
+-- CreateIndex
+CREATE INDEX "Invite_invitedBy_idx" ON "Invite"("invitedBy");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "_PermissionToRole_AB_unique" ON "_PermissionToRole"("A", "B");
 
 -- CreateIndex
@@ -666,16 +771,25 @@ ALTER TABLE "PasswordReset" ADD CONSTRAINT "PasswordReset_userId_fkey" FOREIGN K
 ALTER TABLE "Member" ADD CONSTRAINT "Member_authUserId_fkey" FOREIGN KEY ("authUserId") REFERENCES "AuthUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Guardian" ADD CONSTRAINT "Guardian_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "Member" ADD CONSTRAINT "Member_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Guardian" ADD CONSTRAINT "Guardian_guardianId_fkey" FOREIGN KEY ("guardianId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Unit" ADD CONSTRAINT "Unit_unitTypeId_fkey" FOREIGN KEY ("unitTypeId") REFERENCES "UnitType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Guardian" ADD CONSTRAINT "Guardian_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Unit" ADD CONSTRAINT "Unit_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Unit" ADD CONSTRAINT "Unit_unitTypeId_fkey" FOREIGN KEY ("unitTypeId") REFERENCES "UnitType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_assignedBy_fkey" FOREIGN KEY ("assignedBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_managedBy_fkey" FOREIGN KEY ("managedBy") REFERENCES "AuthUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -687,16 +801,19 @@ ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_roleId_fkey" FOREIGN
 ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "RoleAssignment" ADD CONSTRAINT "RoleAssignment_assignedBy_fkey" FOREIGN KEY ("assignedBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Event" ADD CONSTRAINT "Event_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Event" ADD CONSTRAINT "Event_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Event" ADD CONSTRAINT "Event_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "EventSetting" ADD CONSTRAINT "EventSetting_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "EventSetting" ADD CONSTRAINT "EventSetting_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "EventCenter" ADD CONSTRAINT "EventCenter_areaId_fkey" FOREIGN KEY ("areaId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EventCenter" ADD CONSTRAINT "EventCenter_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "EventCenter" ADD CONSTRAINT "EventCenter_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -705,7 +822,7 @@ ALTER TABLE "EventCenter" ADD CONSTRAINT "EventCenter_eventId_fkey" FOREIGN KEY 
 ALTER TABLE "EventCenter" ADD CONSTRAINT "EventCenter_stateId_fkey" FOREIGN KEY ("stateId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "EventCenter" ADD CONSTRAINT "EventCenter_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "EventCenter" ADD CONSTRAINT "EventCenter_zoneId_fkey" FOREIGN KEY ("zoneId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CenterAdmin" ADD CONSTRAINT "CenterAdmin_centerId_fkey" FOREIGN KEY ("centerId") REFERENCES "EventCenter"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -714,52 +831,52 @@ ALTER TABLE "CenterAdmin" ADD CONSTRAINT "CenterAdmin_centerId_fkey" FOREIGN KEY
 ALTER TABLE "CenterAdmin" ADD CONSTRAINT "CenterAdmin_userId_fkey" FOREIGN KEY ("userId") REFERENCES "AuthUser"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Registration" ADD CONSTRAINT "Registration_centerId_fkey" FOREIGN KEY ("centerId") REFERENCES "EventCenter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Registration" ADD CONSTRAINT "Registration_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Registration" ADD CONSTRAINT "Registration_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Registration" ADD CONSTRAINT "Registration_centerId_fkey" FOREIGN KEY ("centerId") REFERENCES "EventCenter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Registration" ADD CONSTRAINT "Registration_registeredBy_fkey" FOREIGN KEY ("registeredBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "RegistrationParticipation" ADD CONSTRAINT "RegistrationParticipation_registrationId_fkey" FOREIGN KEY ("registrationId") REFERENCES "Registration"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "RegistrationParticipation" ADD CONSTRAINT "RegistrationParticipation_centerId_fkey" FOREIGN KEY ("centerId") REFERENCES "EventCenter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "RegistrationParticipation" ADD CONSTRAINT "RegistrationParticipation_assignedBy_fkey" FOREIGN KEY ("assignedBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "RegistrationParticipation" ADD CONSTRAINT "RegistrationParticipation_centerId_fkey" FOREIGN KEY ("centerId") REFERENCES "EventCenter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RegistrationParticipation" ADD CONSTRAINT "RegistrationParticipation_registrationId_fkey" FOREIGN KEY ("registrationId") REFERENCES "Registration"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "EventGroup" ADD CONSTRAINT "EventGroup_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GroupAssignment" ADD CONSTRAINT "GroupAssignment_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "EventGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GroupAssignment" ADD CONSTRAINT "GroupAssignment_registrationId_fkey" FOREIGN KEY ("registrationId") REFERENCES "Registration"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "GroupAssignment" ADD CONSTRAINT "GroupAssignment_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "GroupAssignment" ADD CONSTRAINT "GroupAssignment_assignedBy_fkey" FOREIGN KEY ("assignedBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "GroupAssignment" ADD CONSTRAINT "GroupAssignment_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "EventGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_registrationId_fkey" FOREIGN KEY ("registrationId") REFERENCES "Registration"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "GroupAssignment" ADD CONSTRAINT "GroupAssignment_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GroupAssignment" ADD CONSTRAINT "GroupAssignment_registrationId_fkey" FOREIGN KEY ("registrationId") REFERENCES "Registration"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_centerId_fkey" FOREIGN KEY ("centerId") REFERENCES "EventCenter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_memberId_fkey" FOREIGN KEY ("memberId") REFERENCES "Member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_centerId_fkey" FOREIGN KEY ("centerId") REFERENCES "EventCenter"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_registrationId_fkey" FOREIGN KEY ("registrationId") REFERENCES "Registration"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AttendanceRecord" ADD CONSTRAINT "AttendanceRecord_verifiedBy_fkey" FOREIGN KEY ("verifiedBy") REFERENCES "AuthUser"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -780,6 +897,18 @@ ALTER TABLE "Badge" ADD CONSTRAINT "Badge_memberId_fkey" FOREIGN KEY ("memberId"
 ALTER TABLE "Notification" ADD CONSTRAINT "Notification_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "Member"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "NotificationTrigger" ADD CONSTRAINT "NotificationTrigger_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_entityId_fkey" FOREIGN KEY ("entityId") REFERENCES "Registration"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "Event"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -789,10 +918,13 @@ ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_memberId_fkey" FOREIGN KEY ("mem
 ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_createdBy_fkey" FOREIGN KEY ("createdBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_invitedBy_fkey" FOREIGN KEY ("invitedBy") REFERENCES "AuthUser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "AuditLog" ADD CONSTRAINT "AuditLog_entityId_fkey" FOREIGN KEY ("entityId") REFERENCES "Registration"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Invite" ADD CONSTRAINT "Invite_unitId_fkey" FOREIGN KEY ("unitId") REFERENCES "Unit"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "_PermissionToRole" ADD CONSTRAINT "_PermissionToRole_A_fkey" FOREIGN KEY ("A") REFERENCES "Permission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
