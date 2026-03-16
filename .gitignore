@@ -55,7 +55,6 @@ Thumbs.db
 backups/
 prisma/backup.js
 prisma/backup.json
-prisma/seed.js
 prisma/full-backup.js
 prisma/full-backup.json
 prisma/restore.js
