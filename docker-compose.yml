@@ -47,7 +47,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-fcs_registration_db}
-      PORT: 4005
+      PORT: 5005
     volumes:
       - ./backups:/app/backups
       - ./fcs-backup-drive-1d0e5974e2b6.json:/app/google-drive-credentials.json:ro
@@ -96,6 +96,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/fcsregistration/fcs-registration-backend/public:/var/www/html:ro
     depends_on:
       api:
         condition: service_started
