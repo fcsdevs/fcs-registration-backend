@@ -70,11 +70,11 @@ services:
       context: ../fcs-registration-system/frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://api.registration.fcsnigeria.org/api
+        NEXT_PUBLIC_API_URL: https://api.fcsnigeria.org/api
     container_name: fcs-frontend
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: https://api.registration.fcsnigeria.org/api
+      NEXT_PUBLIC_API_URL: https://api.fcsnigeria.org/api
       PORT: 3000
     depends_on:
       api:
