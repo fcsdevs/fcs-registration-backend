@@ -52,22 +52,46 @@ async function restore(backupFileName) {
 
             console.log(`📥 Restoring model: ${model} (${backupData[model].length} records)...`);
 
-            try {
-                // We use transactional upsert or delete/create pattern
-                // WARNING: This script assumes you WANT to sync the DB to match the JSON exactly.
+            const totalToRestore = backupData[model].length;
+            const completedIds = new Set();
+            let lastError = null;
 
+            // For models like 'unit' which have self-referencing parentId, we might need multiple passes
+            const maxPasses = model === 'unit' ? 10 : 1;
+            
+            for (let pass = 1; pass <= maxPasses; pass++) {
+                let passSuccesses = 0;
+                
                 for (const item of backupData[model]) {
-                    // Primitive implementation: try-catch create for simplicity in this script
-                    // Note: cuid/uuid should be preserved.
-                    await prisma[model].upsert({
-                        where: { id: item.id },
-                        update: item,
-                        create: item,
-                    });
+                    if (completedIds.has(item.id)) continue;
+
+                    try {
+                        await prisma[model].upsert({
+                            where: { id: item.id },
+                            update: item,
+                            create: item,
+                        });
+                        completedIds.add(item.id);
+                        passSuccesses++;
+                    } catch (err) {
+                        lastError = err.message;
+                    }
                 }
-                console.log(`✅ ${model} restored.`);
-            } catch (err) {
-                console.error(`❌ Error restoring ${model}:`, err.message);
+
+                if (passSuccesses > 0 && completedIds.size < totalToRestore) {
+                    // console.log(`   ✅ Pass ${pass}: +${passSuccesses} records (Total: ${completedIds.size}/${totalToRestore})`);
+                } else if (completedIds.size === totalToRestore) {
+                    break;
+                } else if (passSuccesses === 0) {
+                    // No progress made this pass
+                    break;
+                }
+            }
+            
+            if (completedIds.size === totalToRestore) {
+                console.log(`✅ ${model} restored completely (${completedIds.size} records).`);
+            } else {
+                console.warn(`⚠️ ${model} restored with issues. Successes: ${completedIds.size}/${totalToRestore}. Last Error: ${lastError}`);
             }
         }
 
