@@ -22,6 +22,17 @@ async function uploadToDrive(filePath) {
         return;
     }
 
+    const folderIds = [
+        process.env.GOOGLE_DRIVE_FOLDER_ID,
+        process.env.GOOGLE_DRIVE_FOLDER_ID_B
+    ].filter(id => id && id !== 'YOUR_DRIVE_FOLDER_ID');
+
+    if (folderIds.length === 0) {
+        console.warn('⚠️ No valid Google Drive folder IDs found. Skipping folder association...');
+    }
+
+    let lastError = null;
+
     try {
         const auth = new google.auth.GoogleAuth({
             keyFile: credentialsPath,
@@ -29,26 +40,57 @@ async function uploadToDrive(filePath) {
         });
 
         const drive = google.drive({ version: 'v3', auth });
-        const fileMetadata = {
-            name: path.basename(filePath),
-        };
 
-        if (process.env.GOOGLE_DRIVE_FOLDER_ID && process.env.GOOGLE_DRIVE_FOLDER_ID !== 'YOUR_DRIVE_FOLDER_ID') {
-            fileMetadata.parents = [process.env.GOOGLE_DRIVE_FOLDER_ID];
+        for (const folderId of folderIds) {
+            try {
+                const fileMetadata = {
+                    name: path.basename(filePath),
+                };
+
+                if (folderId) {
+                    fileMetadata.parents = [folderId];
+                }
+
+                const media = {
+                    mimeType: 'application/json',
+                    body: fs.createReadStream(filePath),
+                };
+
+                const response = await drive.files.create({
+                    resource: fileMetadata,
+                    media: media,
+                    fields: 'id',
+                });
+
+                console.log(`✅ Uploaded to Google Drive [Folder: ${folderId}]. File ID: ${response.data.id}`);
+                return; // Success, exit the function
+            } catch (error) {
+                console.warn(`⚠️ Failed to upload to folder ${folderId}: ${error.message}`);
+                lastError = error;
+            }
         }
 
-        const media = {
-            mimeType: 'application/json',
-            body: fs.createReadStream(filePath),
-        };
+        // If we reach here, all folder attempts failed (or no folders were provided)
+        if (folderIds.length > 0) {
+            console.error('❌ All Google Drive upload attempts failed.');
+            if (lastError) throw lastError;
+        } else {
+            // Attempt upload without folder if no folders defined
+            const fileMetadata = {
+                name: path.basename(filePath),
+            };
+            const media = {
+                mimeType: 'application/json',
+                body: fs.createReadStream(filePath),
+            };
+            const response = await drive.files.create({
+                resource: fileMetadata,
+                media: media,
+                fields: 'id',
+            });
+            console.log(`✅ Uploaded to Google Drive (Root). File ID: ${response.data.id}`);
+        }
 
-        const response = await drive.files.create({
-            resource: fileMetadata,
-            media: media,
-            fields: 'id',
-        });
-
-        console.log(`✅ Uploaded to Google Drive. File ID: ${response.data.id}`);
     } catch (error) {
         console.error('❌ Google Drive upload failed:', error.message);
     }
