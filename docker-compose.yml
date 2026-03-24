@@ -12,7 +12,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - fcs-network
+      - proxy
 
   postgres:
     image: postgres:16
@@ -25,10 +25,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - fcs-network
+      - proxy
 
 volumes:
   postgres_data:
 
 networks:
-  fcs-network:
+  proxy:
