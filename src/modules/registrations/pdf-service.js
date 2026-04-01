@@ -183,11 +183,8 @@ export const generateTagPdf = async (registration) => {
             }
 
             // --- QR CODE ---
-            const qrData = JSON.stringify({
-                id: registration.id,
-                code: registration.member?.fcsCode,
-                event: registration.eventId
-            });
+            // Encode only the fcsCode — plain text, directly searchable by the kiosk/registrar scanner
+            const qrData = registration.member?.fcsCode || registration.id;
 
             const qrImage = await QRCode.toDataURL(qrData, {
                 margin: 1,
