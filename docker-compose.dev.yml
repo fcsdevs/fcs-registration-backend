@@ -1,0 +1,41 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: fcs-api-dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "5005:5005"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./backups:/app/backups
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
+    depends_on:
+      - postgres
+    networks:
+      - proxy
+
+  postgres:
+    image: postgres:16
+    container_name: fcs-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: fcs_registration_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    networks:
+      - proxy
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  proxy:
