@@ -7,7 +7,7 @@ services:
       - .env
     ports:
       - "5005:5005"
-      - "127.0.0.1:5555:5555"
+      - "5555:5555"
     volumes:
       - ./backups:/app/backups
     depends_on:
